@@ -2,7 +2,7 @@
   "name": "고카리그 관리자",
   "short_name": "고카관리",
   "description": "고카리그 대회 관리자 시스템",
-  "start_url": "/admin.html",
+  "start_url": "/admin/",
   "display": "standalone",
   "background_color": "#0d1f15",
   "theme_color": "#1a472a",
