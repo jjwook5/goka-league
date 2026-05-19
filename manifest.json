@@ -1,0 +1,21 @@
+{
+  "name": "고카리그",
+  "short_name": "고카리그",
+  "description": "시즌 승강제 골프 리그 관리 시스템",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d1f15",
+  "theme_color": "#1a472a",
+  "icons": [
+    {
+      "src": "https://lh3.googleusercontent.com/d/1vQfDBowVdCv-RJctYNcBDl9N2UqlvpF2",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://lh3.googleusercontent.com/d/1vQfDBowVdCv-RJctYNcBDl9N2UqlvpF2",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
