@@ -1,7 +1,7 @@
 {
   "name": "고카리그",
   "short_name": "고카리그",
-  "description": "시즌 승강제 골프 리그 관리 시스템",
+  "description": "고프카페 시즌 승강제 골프 리그 관리 시스템",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0d1f15",
