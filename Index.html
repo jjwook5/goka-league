@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>고카리그 (BETA)</title>
+<style>
+  /* ═══ RESET & BASE ═══ */
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'Apple SD Gothic Neo', -apple-system, sans-serif; background: #0d1f15; color: #d4e4da; max-width: 480px; margin: 0 auto; min-height: 100vh; overflow-x: hidden; }
+  
+  /* ═══ LOADING ═══ */
+  #loading { position: fixed; inset: 0; background: #0d1f15; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999; }
+  #loading .spinner { width: 40px; height: 40px; border: 3px solid #1e3a2a; border-top-color: #e8d5a3; border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  
+  /* ═══ HEADER & NAV ═══ */
+  .header { background: linear-gradient(135deg, #0d1f15 0%, #1a472a 100%); border-bottom: 1px solid #2d5a3d; padding: 16px 20px 12px; display: flex; justify-content: space-between; align-items: center; }
+  .logo-icon { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #e8d5a3, #c4a86b); display: flex; align-items: center; justify-content: center; color: #1a472a; position: relative; overflow: hidden; }
+  .logo-icon img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
+  .header h1 { font-size: 19px; font-weight: 900; color: #e8d5a3; letter-spacing: 1.5px; display: flex; align-items: center; gap: 6px; }
+  .header .sub { font-size: 11px; color: #6b8f77; letter-spacing: 1px; }
+  .beta-tag { background: linear-gradient(135deg, #b87333, #d97706); color: #ffffff; font-size: 9px; font-weight: 900; padding: 2px 5px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); text-shadow: 0 1px 1px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); font-family: sans-serif; letter-spacing: 0; position: relative; top: -1px; }
+
+  .nav { display: flex; background: #111f17; border-bottom: 1px solid #1e3a2a; position: sticky; top: 0; z-index: 10; }
+  .nav-btn { flex: 1; border: none; background: transparent; padding: 10px 4px 8px; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; color: #6b8f77; font-size: 11px; font-weight: 700; transition: all 0.2s; }
+  .nav-btn.active { color: #e8d5a3; border-bottom: 2px solid #e8d5a3; background: rgba(232,213,163,0.05); }
+  
+  /* ═══ MAIN & TABS ═══ */
+  .main { padding: 16px 14px; min-height: 60vh; }
+  .hidden { display: none !important; }
+  .league-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+  .league-tab { flex: 1; border: 1px solid #2d5a3d; background: #111f17; color: #6b8f77; padding: 8px 0; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; text-align: center; }
+  .league-tab.active { color: #e8d5a3; border-color: transparent; }
+  .league-tab[data-league="1부"].active { background: #1a472a; } .league-tab[data-league="2부"].active { background: #2d5a3d; } .league-tab[data-league="3부"].active { background: #4a7c5c; }
+  
+  .match-select { width: 100%; padding: 10px 12px; border-radius: 8px; background: #111f17; color: #e8d5a3; border: 1px solid #2d5a3d; font-size: 14px; font-weight:700; margin-bottom: 12px; outline: none; }
+  .sub-tab-scroll { overflow-x: auto; margin-bottom: 8px; display:flex; gap:6px; padding-bottom:4px;}
+  .sub-tab { padding: 7px 12px; border-radius: 20px; border: 1px solid #2d5a3d; background: #111f17; color: #6b8f77; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .sub-tab.active { background: #1a472a; color: #e8d5a3; border-color: #3a6b4a; }
+  
+  /* ═══ LIST & ROWS ═══ */
+  .list-header { display: flex; align-items: center; padding: 8px 8px; font-size: 10px; color: #5a7f6a; font-weight: 600; border-bottom: 1px solid #1e3a2a; margin-bottom: 4px; gap: 8px; }
+  .row { display: flex; align-items: center; gap: 8px; padding: 10px 8px; border-bottom: 1px solid #152a1e; position: relative; border-left: 3px solid transparent; cursor: pointer; }
+  .row.promo { border-left-color: #3b82f6; background: rgba(59,130,246,0.04); }
+  .row.rele { border-left-color: #ef4444; background: rgba(239,68,68,0.04); }
+  .rank { flex: 0 0 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; background: #1e3a2a; color: #8faa97; }
+  .rank.gold { background: #e8d5a3; color: #1a472a; } .rank.silver { background: #c0c0c0; color: #1a1a1a; } .rank.bronze { background: #b87333; color: #1a1a1a; }
+  .name { font-size: 14px; font-weight: 700; color: #d4e4da; }
+  .cell { flex: 0 0 50px; text-align: center; font-size: 13px; color: #b4c9bb; }
+  .cell.bold { font-weight: 800; color: #e8d5a3; }
+  
+  /* ═══ SHINPERIO TABLE GRID ═══ */
+  .np-table-wrapper { width: 100%; overflow-x: hidden; background: #111f17; border: 1px solid #2d5a3d; border-radius: 10px; padding: 4px; margin-top: 4px; }
+  .np-grid-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 12px; }
+  .np-grid-table th { color: #5a7f6a; font-weight: 700; padding: 10px 4px; border-bottom: 1px solid #1e3a2a; font-size: 10.5px; }
+  .np-grid-table td { padding: 12px 4px; border-bottom: 1px solid #152a1e; font-weight: 500; color: #b4c9bb; }
+  .np-grid-table tr:last-child td { border-bottom: none; }
+  .np-name-td { text-align: left; font-weight: 700; color: #d4e4da !important; padding-left: 8px !important; cursor: pointer; }
+  .np-bold-td { font-weight: 800 !important; color: #e8d5a3 !important; }
+  
+  /* ═══ [신규] 통합 타이틀 테이블 ═══ */
+  .title-table-wrapper { width: 100%; overflow-x: hidden; background: #111f17; border: 1px solid #2d5a3d; border-radius: 10px; padding: 4px; margin-top: 4px; }
+  .title-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 12px; }
+  .title-table th { color: #5a7f6a; font-weight: 700; padding: 10px 4px; border-bottom: 1px solid #1e3a2a; font-size: 10.5px; cursor: pointer; user-select: none; }
+  .title-table th.sorted { color: #e8d5a3; }
+  .title-table td { padding: 10px 4px; border-bottom: 1px solid #152a1e; font-weight: 600; color: #b4c9bb; }
+  .title-table tr:last-child td { border-bottom: none; }
+  
+  /* ═══ [신규] 청백팀 결과 ═══ */
+  .team-vs { display: flex; gap: 8px; margin-top: 4px; }
+  .team-col { flex: 1; background: #111f17; border: 1px solid #2d5a3d; border-radius: 10px; padding: 8px; }
+  .team-col-header { text-align: center; font-size: 13px; font-weight: 800; padding: 8px 0; border-bottom: 1px solid #1e3a2a; margin-bottom: 6px; }
+  .team-player-row { display: flex; justify-content: space-between; padding: 6px 4px; border-bottom: 1px solid #152a1e; font-size: 12px; }
+  .team-total-row { display: flex; justify-content: space-between; padding: 8px 4px; font-size: 13px; font-weight: 800; color: #e8d5a3; border-top: 2px solid #2d5a3d; margin-top: 4px; }
+  
+  /* ═══ [신규] 대회 통계 요약 ═══ */
+  .match-summary { background: #111f17; border: 1px solid #2d5a3d; border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; display: flex; justify-content: space-around; text-align: center; }
+  .match-summary .ms-item { display: flex; flex-direction: column; gap: 2px; }
+  .match-summary .ms-val { font-size: 16px; font-weight: 800; color: #e8d5a3; }
+  .match-summary .ms-lbl { font-size: 10px; color: #8faa97; }
+  
+  /* ═══ CARDS & PROFILE ═══ */
+  .profile-card { background: #111f17; border: 1px solid #2d5a3d; border-radius: 14px; padding: 16px; margin-bottom: 16px; }
+  .profile-top { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+  .avatar { width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, #e8d5a3, #c4a86b); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 900; color: #1a472a; }
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat-box { background: #0d1f15; border-radius: 10px; padding: 10px 12px; border: 1px solid #1e3a2a; }
+  
+  .match-detail { background: #0d1f15; border-radius: 10px; padding: 12px; border: 1px solid #1e3a2a; margin-bottom: 12px; }
+  .match-detail-head { display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #152a1e; padding-bottom: 6px;}
+  
+  .score-2row { display: flex; flex-direction: column; gap: 4px; }
+  .s-row { display: flex; align-items: center; background: #111f17; border-radius: 6px; padding: 4px; }
+  .s-label { flex: 0 0 30px; font-size: 10px; font-weight: 800; color: #8faa97; text-align: center; }
+  .s-cells { display: flex; flex: 1; justify-content: space-between; padding: 0 4px; }
+  .s-cell { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; border-radius: 4px; }
+  .s-summary { flex: 0 0 55px; font-size: 11px; font-weight: 700; text-align: right; color: #e8d5a3; padding-right: 4px;}
+  
+  .s-under { background: #1e3a8a; color: #bfdbfe; }
+  .s-par { background: #1e3a2a; color: #d4e4da; }  
+  .s-bogey { background: #713f12; color: #fef08a; }
+  .s-double { background: #7f1d1d; color: #fecaca; }
+  
+  /* ═══ [신규] SVG 그래프 영역 ═══ */
+  .trend-chart { background: #0d1f15; border: 1px solid #1e3a2a; border-radius: 10px; padding: 12px; margin-bottom: 16px; }
+  .trend-chart h4 { font-size: 13px; color: #8faa97; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spinner"></div><p style="color:#8faa97; margin-top:10px; font-size:12px;">데이터를 불러오는 중...</p></div>
+
+<header class="header">
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <!-- ★ 로고: 이미지 URL을 LOGO_URL 변수에 넣으면 자동 교체, 없으면 이모지 폴백 -->
+    <div class="logo-icon" id="logoArea">⛳</div>
+    <div>
+      <h1>고카리그 <span class="beta-tag">BETA</span></h1>
+      <p class="sub">시즌 승강제 관리 시스템</p>
+    </div>
+  </div>
+</header>
+
+<nav class="nav">
+  <button class="nav-btn active" onclick="switchTab('standings')"><span>🏆 리그순위</span></button>
+  <button class="nav-btn" onclick="switchTab('results')"><span>📋 대회결과</span></button>
+  <button class="nav-btn" onclick="switchTab('profile')"><span>👤 선수카드</span></button>
+</nav>
+
+<main class="main">
+  <div id="tab-standings"></div>
+  <div id="tab-results" class="hidden"></div>
+  <div id="tab-profile" class="hidden"></div>
+</main>
+
+<script>
+/* ═══════════════════════════════════════════════════
+   ★ 로고 이미지 URL 설정 (여기만 바꾸면 됨)
+   빈 문자열이면 기존 ⛳ 이모지 유지
+   ═══════════════════════════════════════════════════ */
+const LOGO_URL = 'https://lh3.googleusercontent.com/d/1vQfDBowVdCv-RJctYNcBDl9N2UqlvpF2';
+
+let DATA = { members: [], courses: [], matches: [], records: [], seasons: [] };
+let currentTab = 'standings';
+let currentLeague = '1부';
+let currentSeasonId = '';
+let currentMatchId = '';
+let currentResultSubTab = 'np';
+let currentTitleSort = 'b'; // ★ 통합 타이틀 테이블 기본 정렬
+let currentPlayer = null;
+
+function esc(str) { return String(str || '').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function numFmt(val) { 
+  if(val === '' || isNaN(val) || val === null) return '-';
+  return Number(val).toFixed(2); 
+}
+
+/* ★ 닉네임 가져오기 헬퍼 */
+function getNickname(phone) {
+  const m = DATA.members.find(x => String(x['전화번호']) === String(phone));
+  return m ? (m['닉네임'] || '') : '';
+}
+
+function switchTab(tabId) {
+  currentTab = tabId;
+  document.querySelectorAll('.nav-btn').forEach((b, idx) => {
+    b.classList.toggle('active', ['standings','results','profile'].indexOf(tabId) === idx);
+  });
+  ['standings', 'results', 'profile'].forEach(t => {
+    document.getElementById('tab-' + t).classList.toggle('hidden', t !== tabId);
+  });
+  render();
+}
+
+function countScoreTypes(scores) {
+  let birdies = 0, pars = 0, bogeys = 0, doubles = 0;
+  for(let i=0; i<18; i++){
+    if(scores[i] === '' || isNaN(scores[i])) continue;
+    let s = Number(scores[i]);
+    if(s < 0) birdies++;
+    else if(s === 0) pars++;
+    else if(s === 1) bogeys++;
+    else if(s >= 2) doubles++;
+  }
+  return { birdies, pars, bogeys, doubles };
+}
+
+function render() {
+  if(currentTab === 'standings') renderStandings();
+  else if(currentTab === 'results') renderResults();
+  else if(currentTab === 'profile') renderProfile();
+}
+
+/* ═══════════════════════════════════════════════════
+   ★ [개선3] 리그순위 — 닉네임 + 성명 병기
+   ═══════════════════════════════════════════════════ */
+function renderStandings() {
+  const el = document.getElementById('tab-standings');
+  let seasonOptions = DATA.seasons.map(s => `<option value="${s['시즌ID']}" ${s['시즌ID']===currentSeasonId?'selected':''}>${s['시즌명']}</option>`).join('');
+  
+  const season = DATA.seasons.find(s => s['시즌ID'] === currentSeasonId);
+  const startM = season ? season['시작_대회번호'] : '0';
+  const endM = season && season['종료_대회번호'] ? season['종료_대회번호'] : '99999999';
+  
+  const validRecs = DATA.records.filter(r => r['대회번호'] >= startM && r['대회번호'] <= endM);
+  
+  const ps = {};
+  validRecs.forEach(r => {
+    const key = r['전화번호'];
+    if (!ps[key]) ps[key] = { 성명: r['성명'], 닉네임: r['닉네임'] || getNickname(key), 리그: r['소속리그'], grossArr: [], phone: key };
+    if (r['합계'] > 0) ps[key].grossArr.push(r['합계']);
+  });
+  
+  let list = Object.values(ps)
+    .filter(p => p.리그 === currentLeague && p.grossArr.length > 0)
+    .map(p => {
+      p.참가 = p.grossArr.length;
+      p.평균그로스 = Math.round(p.grossArr.reduce((a,b)=>a+b,0) / p.참가 * 10) / 10;
+      return p;
+    });
+    
+  list.sort((a, b) => {
+    if(a.평균그로스 === b.평균그로스) return b.참가 - a.참가;
+    return a.평균그로스 - b.평균그로스;
+  });
+  
+  let html = `<select class="match-select" onchange="currentSeasonId=this.value; renderStandings();">${seasonOptions}</select>
+    <div class="league-tabs">
+      ${['1부','2부','3부'].map(l => `<button class="league-tab ${currentLeague === l ? 'active' : ''}" onclick="currentLeague='${l}';renderStandings();">${l} 리그</button>`).join('')}
+    </div>
+    <div class="list-header">
+      <span style="flex:0 0 32px;text-align:center">순위</span><span style="flex:1">선수</span>
+      <span style="flex:0 0 44px;text-align:center">출전</span><span style="flex:0 0 56px;text-align:center">평균타수</span>
+    </div>`;
+    
+  list.forEach((p, i) => {
+    const isPromo = i < 2 && currentLeague !== '1부';
+    const isRele = i >= list.length - 2 && currentLeague !== '3부' && list.length >= 4;
+    const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    const nickDisplay = p.닉네임 ? esc(p.닉네임) + ' ' : '';
+    
+    html += `<div class="row ${isPromo ? 'promo' : ''} ${isRele ? 'rele' : ''}" onclick="openPlayerProfile('${p.phone}')">
+      <span class="rank ${rankClass}">${i + 1}</span>
+      <div style="flex:1;min-width:0"><div class="name">${nickDisplay}${esc(p.성명)}</div></div>
+      <span class="cell">${p.참가}회</span><span class="cell bold">${p.평균그로스}</span>
+    </div>`;
+  });
+  
+  if(list.length === 0) html += `<div style="text-align:center; padding:30px; color:#6b8f77;">시즌 데이터가 없습니다.</div>`;
+  el.innerHTML = html;
+}
+
+/* ═══════════════════════════════════════════════════
+   ★ [개선1-1] 대회결과 — 통합 타이틀 + 컬럼 정렬
+   ★ [개선1-2] 청백팀 결과
+   ★ [개선5] 선수명 터치 → 선수카드
+   ★ [개선7] 대회 통계 한 줄 요약
+   ═══════════════════════════════════════════════════ */
+function renderResults() {
+  const el = document.getElementById('tab-results');
+  const uniqueMatches = [...new Map(DATA.matches.map(m => [m['대회번호'], m])).values()].reverse();
+  if(!currentMatchId && uniqueMatches.length > 0) currentMatchId = uniqueMatches[0]['대회번호'];
+  
+  let recs = DATA.records.filter(r => r['대회번호'] === currentMatchId && r['합계'] > 0);
+  recs.forEach(r => {
+    const c = countScoreTypes(r.scores);
+    r._b = c.birdies; r._p = c.pars; r._bg = c.bogeys; r._d = c.doubles;
+  });
+  
+  // 정렬
+  if(currentResultSubTab==='np') recs.sort((a,b)=>a['Net_Score']-b['Net_Score']);
+  else if(currentResultSubTab==='str') recs.sort((a,b)=>a['합계']-b['합계']);
+  else if(currentResultSubTab==='title') {
+    if(currentTitleSort==='b') recs.sort((a,b)=>b._b - a._b);
+    else if(currentTitleSort==='p') recs.sort((a,b)=>b._p - a._p);
+    else if(currentTitleSort==='bg') recs.sort((a,b)=>b._bg - a._bg);
+    else if(currentTitleSort==='d') recs.sort((a,b)=>b._d - a._d);
+  }
+  else if(currentResultSubTab==='team') { /* 팀별은 별도 처리 */ }
+
+  let html = `<select class="match-select" onchange="currentMatchId=this.value; renderResults();">
+    ${uniqueMatches.map(m => `<option value="${m['대회번호']}" ${m['대회번호']===currentMatchId?'selected':''}>${m['날짜']} | ${esc(m['대회명'])}</option>`).join('')}
+  </select>`;
+  
+  /* ★ [개선7] 대회 통계 요약 */
+  if(recs.length > 0) {
+    const avgGross = Math.round(recs.reduce((s,r)=>s+r['합계'],0)/recs.length*10)/10;
+    const totalBirdies = recs.reduce((s,r)=>s+r._b,0);
+    const totalPars = recs.reduce((s,r)=>s+r._p,0);
+    html += `<div class="match-summary">
+      <div class="ms-item"><span class="ms-val">${recs.length}명</span><span class="ms-lbl">참가</span></div>
+      <div class="ms-item"><span class="ms-val">${avgGross}</span><span class="ms-lbl">평균타수</span></div>
+      <div class="ms-item"><span class="ms-val" style="color:#3b82f6">${totalBirdies}</span><span class="ms-lbl">총 버디</span></div>
+      <div class="ms-item"><span class="ms-val">${totalPars}</span><span class="ms-lbl">총 파</span></div>
+    </div>`;
+  }
+  
+  /* ★ 서브탭: 신페리오 / 스트로크 / 번외타이틀(통합) / 청백팀 */
+  html += `<div class="sub-tab-scroll">
+    ${[
+      {id:'np',l:'🎯 신페리오'},
+      {id:'str',l:'⛳ 스트로크'},
+      {id:'title',l:'🏅 번외타이틀'},
+      {id:'team',l:'🟦🟨 청백팀'}
+    ].map(t => 
+      `<button class="sub-tab ${currentResultSubTab===t.id?'active':''}" onclick="currentResultSubTab='${t.id}';renderResults();">${t.l}</button>`
+    ).join('')}
+  </div>`;
+  
+  /* ─── 신페리오 풀포맷 ─── */
+  if(currentResultSubTab === 'np') {
+    html += `<div class="np-table-wrapper">
+      <table class="np-grid-table">
+        <thead>
+          <tr>
+            <th style="text-align:left; padding-left:8px; width:70px;">선수(리그)</th>
+            <th style="width:50px;">합산</th>
+            <th>Net</th>
+            <th>HDCP</th>
+            <th>Luck</th>
+          </tr>
+        </thead>
+        <tbody>`;
+        
+    recs.forEach(r => {
+      let lf = Number(r['Luck_Factor']) || 0;
+      let luckColor = lf > 0 ? '#22c55e' : lf < 0 ? '#ef4444' : '#b4c9bb';
+      let luckSign = lf > 0 ? '+' : '';
+      
+      html += `<tr>
+        <td class="np-name-td" onclick="openPlayerProfile('${r['전화번호']}')">${esc(r.성명)}<span style="display:block; font-size:9px; color:#5a7f6a; font-weight:normal;">${r['소속리그']}</span></td>
+        <td>${r['합계']}</td>
+        <td class="np-bold-td">${numFmt(r['Net_Score'])}</td>
+        <td>${numFmt(r['합계'] - r['Net_Score'])}</td>
+        <td style="color:${luckColor}; font-weight:700;">${luckSign}${numFmt(lf)}</td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+  /* ─── 스트로크 ─── */
+  else if(currentResultSubTab === 'str') {
+    html += `<div class="list-header"><span style="flex:0 0 32px;text-align:center">#</span><span style="flex:1">선수</span><span style="flex:0 0 44px;text-align:center">기록</span></div>`;
+    recs.forEach((r, i) => {
+      let rCls = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+      html += `<div class="row" onclick="openPlayerProfile('${r['전화번호']}')"><span class="rank ${rCls}">${i+1}</span>
+        <div style="flex:1"><div class="name">${esc(r.성명)}</div><div style="font-size:10px;color:#5a7f6a;">${r['소속리그']}</div></div>
+        <span class="cell bold">${r['합계']}타</span>
+      </div>`;
+    });
+  }
+  /* ─── ★ [개선1-1] 번외타이틀 통합 테이블 ─── */
+  else if(currentResultSubTab === 'title') {
+    const sortArrow = (col) => currentTitleSort === col ? ' ▼' : '';
+    html += `<div class="title-table-wrapper">
+      <table class="title-table">
+        <thead>
+          <tr>
+            <th style="text-align:left; padding-left:8px; width:70px;">선수</th>
+            <th class="${currentTitleSort==='b'?'sorted':''}" onclick="currentTitleSort='b';renderResults();">🦅버디${sortArrow('b')}</th>
+            <th class="${currentTitleSort==='p'?'sorted':''}" onclick="currentTitleSort='p';renderResults();">✅파${sortArrow('p')}</th>
+            <th class="${currentTitleSort==='bg'?'sorted':''}" onclick="currentTitleSort='bg';renderResults();">📋보기${sortArrow('bg')}</th>
+            <th class="${currentTitleSort==='d'?'sorted':''}" onclick="currentTitleSort='d';renderResults();">💥더블${sortArrow('d')}</th>
+          </tr>
+        </thead>
+        <tbody>`;
+    recs.forEach((r, i) => {
+      html += `<tr style="cursor:pointer;" onclick="openPlayerProfile('${r['전화번호']}')">
+        <td style="text-align:left; padding-left:8px; font-weight:700; color:#d4e4da;">${i+1}. ${esc(r.성명)}</td>
+        <td style="${currentTitleSort==='b'?'color:#3b82f6;font-weight:800;':''}${i===0&&currentTitleSort==='b'?'font-size:14px;':''}">${r._b}</td>
+        <td style="${currentTitleSort==='p'?'color:#22c55e;font-weight:800;':''}${i===0&&currentTitleSort==='p'?'font-size:14px;':''}">${r._p}</td>
+        <td style="${currentTitleSort==='bg'?'color:#eab308;font-weight:800;':''}${i===0&&currentTitleSort==='bg'?'font-size:14px;':''}">${r._bg}</td>
+        <td style="${currentTitleSort==='d'?'color:#ef4444;font-weight:800;':''}${i===0&&currentTitleSort==='d'?'font-size:14px;':''}">${r._d}</td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+  /* ─── ★ [개선1-2] 청백팀 결과 ─── */
+  else if(currentResultSubTab === 'team') {
+    const blueTeam = recs.filter(r => r['소속팀'] === '청팀').sort((a,b) => a['합계'] - b['합계']);
+    const whiteTeam = recs.filter(r => r['소속팀'] === '백팀').sort((a,b) => a['합계'] - b['합계']);
+    const blueTotal = blueTeam.reduce((s,r) => s + r['합계'], 0);
+    const whiteTotal = whiteTeam.reduce((s,r) => s + r['합계'], 0);
+    const blueWin = blueTotal < whiteTotal;
+    const whiteWin = whiteTotal < blueTotal;
+    
+    html += `<div class="team-vs">
+      <div class="team-col" style="border-color:${blueWin?'#3b82f6':'#2d5a3d'};">
+        <div class="team-col-header" style="color:#60a5fa;">🟦 청팀 ${blueWin?'👑':''}</div>
+        ${blueTeam.map(r => `<div class="team-player-row" onclick="openPlayerProfile('${r['전화번호']}')" style="cursor:pointer;">
+          <span style="color:#d4e4da;">${esc(r.성명)}</span><span style="color:#60a5fa;font-weight:700;">${r['합계']}</span>
+        </div>`).join('')}
+        <div class="team-total-row"><span>합계</span><span style="color:#60a5fa;">${blueTotal}</span></div>
+      </div>
+      <div class="team-col" style="border-color:${whiteWin?'#e8d5a3':'#2d5a3d'};">
+        <div class="team-col-header" style="color:#e8d5a3;">🟨 백팀 ${whiteWin?'👑':''}</div>
+        ${whiteTeam.map(r => `<div class="team-player-row" onclick="openPlayerProfile('${r['전화번호']}')" style="cursor:pointer;">
+          <span style="color:#d4e4da;">${esc(r.성명)}</span><span style="color:#e8d5a3;font-weight:700;">${r['합계']}</span>
+        </div>`).join('')}
+        <div class="team-total-row"><span>합계</span><span>${whiteTotal}</span></div>
+      </div>
+    </div>`;
+    
+    if(blueTeam.length === 0 && whiteTeam.length === 0) {
+      html += `<div style="text-align:center; padding:20px; color:#6b8f77; font-size:13px;">팀 배정 데이터가 없습니다.</div>`;
+    }
+  }
+  
+  el.innerHTML = html;
+}
+
+function openPlayerProfile(phone) {
+  switchTab('profile');
+  currentPlayer = String(phone);
+  render();
+}
+
+/* ═══════════════════════════════════════════════════
+   ★ [개선2] 선수카드 — 오버파 원본 숫자 표기
+   ★ [개선6] 그로스 추이 꺾은선 SVG 그래프
+   ═══════════════════════════════════════════════════ */
+function renderProfile() {
+  const el = document.getElementById('tab-profile');
+  if(!currentPlayer) {
+    let html = `<h3 style="color:#e8d5a3; margin-bottom:12px; font-size:14px;">선수 프로필 선택</h3><div style="display:flex;flex-wrap:wrap;gap:8px;">`;
+    DATA.members.forEach(m => html += `<div class="sub-tab" onclick="openPlayerProfile('${m['전화번호']}')">${m['성명']} (${m['소속리그']})</div>`);
+    html += `</div>`;
+    el.innerHTML = html; return;
+  }
+  
+  const m = DATA.members.find(x => String(x['전화번호']) === currentPlayer);
+  const recs = DATA.records.filter(r => String(r['전화번호']) === currentPlayer && r['합계'] > 0);
+  
+  if(!m) return;
+  const nickDisplay = m['닉네임'] ? esc(m['닉네임']) + ' ' : '';
+  
+  let html = `<button style="background:none;border:none;color:#8faa97;margin-bottom:10px;font-weight:700;font-size:13px;cursor:pointer;" onclick="currentPlayer=null;renderProfile();">← 목록으로 돌아가기</button>
+    <div class="profile-card"><div class="profile-top"><div class="avatar">${m['성명'][0]}</div><div><div style="font-size:20px;font-weight:800;color:#e8d5a3">${nickDisplay}${esc(m['성명'])}</div><div style="color:#8faa97;font-size:12px;">${m['소속리그']}</div></div></div>`;
+    
+  if(recs.length > 0) {
+    let avg = Math.round(recs.reduce((s,r)=>s+r['합계'],0)/recs.length*10)/10;
+    let best = Math.min(...recs.map(r=>r['합계']));
+    
+    html += `<div class="stat-grid" style="margin-bottom:20px;">
+      <div class="stat-box"><div style="font-size:11px;color:#8faa97">통산 출전</div><div style="font-size:18px;font-weight:800;color:#d4e4da">${recs.length}회</div></div>
+      <div class="stat-box"><div style="font-size:11px;color:#8faa97">평균 스트로크</div><div style="font-size:18px;font-weight:800;color:#e8d5a3">${avg}</div></div>
+      <div class="stat-box"><div style="font-size:11px;color:#8faa97">베스트 스코어</div><div style="font-size:18px;font-weight:800;color:#3b82f6">${best}</div></div>
+      <div class="stat-box"><div style="font-size:11px;color:#8faa97">최근 스코어</div><div style="font-size:18px;font-weight:800;color:#d4e4da">${recs[recs.length-1]['합계']}</div></div>
+    </div>`;
+    
+    /* ★ [개선6] 그로스 추이 꺾은선 그래프 (SVG) */
+    html += renderTrendChart(recs);
+    
+    html += `<h3 style="color:#8faa97;font-size:13px;margin-bottom:10px;">대회별 홀별 기록</h3>`;
+    
+    /* ★ [개선2] 홀별 스코어를 오버파 원본 숫자(0, -1, +1 등)로 표기 */
+    [...recs].reverse().forEach(r => {
+      const match = DATA.matches.find(x => x['대회번호'] === r['대회번호']);
+      
+      let htmlF = '', htmlB = '', overF = 0, overB = 0, totF = 0, totB = 0;
+      const c1 = DATA.courses.find(c => c['구장명']===r['구장명'] && c['코스명']===r['전반코스']);
+      const c2 = DATA.courses.find(c => c['구장명']===r['구장명'] && c['코스명']===r['후반코스']);
+      const pars = (c1 && c2) ? [...c1.P, ...c2.P] : Array(18).fill(4);
+      
+      for(let h=0; h<9; h++) {
+        let s = Number(r.scores[h]); overF += s; totF += (pars[h]+s);
+        let cls = s<0?'s-under':s===0?'s-par':s===1?'s-bogey':'s-double';
+        let display = s === 0 ? '0' : (s > 0 ? '+'+s : String(s));
+        htmlF += `<div class="s-cell ${cls}">${display}</div>`;
+      }
+      for(let h=9; h<18; h++) {
+        let s = Number(r.scores[h]); overB += s; totB += (pars[h]+s);
+        let cls = s<0?'s-under':s===0?'s-par':s===1?'s-bogey':'s-double';
+        let display = s === 0 ? '0' : (s > 0 ? '+'+s : String(s));
+        htmlB += `<div class="s-cell ${cls}">${display}</div>`;
+      }
+      
+      html += `<div class="match-detail">
+        <div class="match-detail-head"><span style="color:#e8d5a3;font-weight:700;">${match?match['대회명']:'-'}</span><span style="color:#8faa97;font-size:11px">${match?match['날짜']:''}</span></div>
+        <div class="score-2row">
+          <div class="s-row"><div class="s-label">OUT</div><div class="s-cells">${htmlF}</div><div class="s-summary">${totF}(${overF>0?'+'+overF:overF})</div></div>
+          <div class="s-row"><div class="s-label">IN</div><div class="s-cells">${htmlB}</div><div class="s-summary">${totB}(${overB>0?'+'+overB:overB})</div></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11.5px;color:#8faa97;border-top:1px dashed #1e3a2a;padding-top:6px;">
+          <span>그로스합계 <b style="color:#e8d5a3">${r['합계']}타</b></span>
+          <span>신페리오 Net <b>${numFmt(r['Net_Score'])}</b></span>
+        </div>
+      </div>`;
+    });
+  }
+  html += `</div>`; el.innerHTML = html;
+}
+
+/* ═══════════════════════════════════════════════════
+   ★ [개선6] SVG 꺾은선 그래프 렌더러
+   ═══════════════════════════════════════════════════ */
+function renderTrendChart(recs) {
+  if(recs.length < 2) return '';
+  
+  const W = 340, H = 140, padL = 35, padR = 10, padT = 20, padB = 30;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+  
+  const scores = recs.map(r => r['합계']);
+  const minS = Math.min(...scores) - 2;
+  const maxS = Math.max(...scores) + 2;
+  const range = maxS - minS || 1;
+  
+  const points = scores.map((s, i) => {
+    const x = padL + (i / (scores.length - 1)) * chartW;
+    const y = padT + (1 - (s - minS) / range) * chartH;
+    return { x, y, s };
+  });
+  
+  const polyline = points.map(p => `${p.x},${p.y}`).join(' ');
+  const avg = Math.round(scores.reduce((a,b)=>a+b,0)/scores.length*10)/10;
+  const avgY = padT + (1 - (avg - minS) / range) * chartH;
+  
+  // Y축 눈금 (3~4개)
+  const step = Math.ceil(range / 4);
+  let gridLines = '';
+  for(let v = Math.ceil(minS); v <= maxS; v += step) {
+    const gy = padT + (1 - (v - minS) / range) * chartH;
+    gridLines += `<line x1="${padL}" y1="${gy}" x2="${W-padR}" y2="${gy}" stroke="#1e3a2a" stroke-width="1"/>`;
+    gridLines += `<text x="${padL-4}" y="${gy+4}" fill="#5a7f6a" font-size="10" text-anchor="end">${v}</text>`;
+  }
+  
+  // X축 대회 라벨 (최대 6개)
+  let xLabels = '';
+  const labelStep = Math.max(1, Math.floor(scores.length / 6));
+  for(let i = 0; i < scores.length; i += labelStep) {
+    const match = DATA.matches.find(x => x['대회번호'] === recs[i]['대회번호']);
+    const label = match ? match['날짜'].slice(5) : (i+1)+'';
+    xLabels += `<text x="${points[i].x}" y="${H-4}" fill="#5a7f6a" font-size="9" text-anchor="middle">${label}</text>`;
+  }
+  
+  let dots = points.map(p => 
+    `<circle cx="${p.x}" cy="${p.y}" r="4" fill="#e8d5a3" stroke="#0d1f15" stroke-width="2"/>
+     <text x="${p.x}" y="${p.y - 8}" fill="#e8d5a3" font-size="9" font-weight="700" text-anchor="middle">${p.s}</text>`
+  ).join('');
+  
+  return `<div class="trend-chart">
+    <h4>📈 그로스 추이 (평균 ${avg})</h4>
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;">
+      ${gridLines}
+      <line x1="${padL}" y1="${avgY}" x2="${W-padR}" y2="${avgY}" stroke="#e8d5a3" stroke-width="1" stroke-dasharray="4,3" opacity="0.4"/>
+      <polyline points="${polyline}" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+      ${dots}
+      ${xLabels}
+    </svg>
+  </div>`;
+}
+
+/* ═══ 로고 초기화 ═══ */
+function initLogo() {
+  if(LOGO_URL) {
+    document.getElementById('logoArea').innerHTML = `<img src="${LOGO_URL}" alt="logo" onerror="this.parentElement.innerHTML='⛳'">`;
+  }
+}
+
+const API_URL = 'https://script.google.com/macros/s/AKfycbzz9bhSVVraHCjCaK_JWnnS2S8E2pYWVs4y81rYm07a9VS4cI0PG6adKxN9vIRzBcxo/exec';
+
+function loadData() {
+  fetch(API_URL + '?page=api&action=getAllData')
+    .then(res => res.json())
+    .then(res => {
+      DATA = res;
+      const activeSeason = DATA.seasons.find(s => s['진행상태'] === '진행중');
+      currentSeasonId = activeSeason ? activeSeason['시즌ID'] : (DATA.seasons.length > 0 ? DATA.seasons[0]['시즌ID'] : '');
+      
+      DATA.records.forEach(r => {
+        r.scores = []; for(let i=1; i<=18; i++) r.scores.push(r['H'+i]);
+      });
+      
+      document.getElementById('loading').style.display = 'none';
+      initLogo();
+      render();
+    })
+    .catch(err => {
+      document.getElementById('loading').innerHTML = '<p style="color:#ef4444;">데이터 로딩 실패. 새로고침 해주세요.</p>';
+      console.error(err);
+    });
+}
+loadData();
+</script>
+</body>
+</html>
