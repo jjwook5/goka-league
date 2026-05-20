@@ -203,8 +203,8 @@ function renderStandings() {
   let seasonOptions = DATA.seasons.map(s => `<option value="${s['시즌ID']}" ${s['시즌ID']===currentSeasonId?'selected':''}>${s['시즌명']}</option>`).join('');
   
   const season = DATA.seasons.find(s => s['시즌ID'] === currentSeasonId);
-  const startM = season ? season['시작_대회번호'] : '0';
-  const endM = season && season['종료_대회번호'] ? season['종료_대회번호'] : '99999999';
+  const startM = season ? Number(season['시작_대회번호']) : 0;
+  const endM = season && season['종료_대회번호'] ? Number(season['종료_대회번호']) : 99999999;
   
   const validRecs = DATA.records.filter(r => r['대회번호'] >= startM && r['대회번호'] <= endM);
   
@@ -282,7 +282,7 @@ function renderResults() {
   }
   else if(currentResultSubTab==='team') { /* 팀별은 별도 처리 */ }
 
-  let html = `<select class="match-select" onchange="currentMatchId=this.value; renderResults();">
+  let html = `<select class="match-select" onchange="currentMatchId=Number(this.value); renderResults();">
     ${uniqueMatches.map(m => `<option value="${m['대회번호']}" ${m['대회번호']===currentMatchId?'selected':''}>${m['날짜']} | ${esc(m['대회명'])}</option>`).join('')}
   </select>`;
   
@@ -561,28 +561,61 @@ function initLogo() {
   }
 }
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbz5ffx7QWXvwfe6hAZVyQFGPEC0B_97jpsqbyUiglmYGR1l_NnOAPtzu4b3iFY6I2D_/exec';
+/* ═══════════════════════════════════════════════════
+   ★ Supabase 연결 설정
+   ═══════════════════════════════════════════════════ */
+const SUPABASE_URL = 'https://ogyzzmlxxmplwaawraoc.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9neXp6bWx4eG1wbHdhYXdyYW9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMTM2NTIsImV4cCI6MjA5NDc4OTY1Mn0.ih7nCSWSnSlTmqweo8F_8ZOrRQ6sWYVgQXsK7R6b9V0';
 
-function loadData() {
-  fetch(API_URL + '?page=api&action=getAllData')
-    .then(res => res.json())
-    .then(res => {
-      DATA = res;
-      const activeSeason = DATA.seasons.find(s => s['진행상태'] === '진행중');
-      currentSeasonId = activeSeason ? activeSeason['시즌ID'] : (DATA.seasons.length > 0 ? DATA.seasons[0]['시즌ID'] : '');
-      
-      DATA.records.forEach(r => {
-        r.scores = []; for(let i=1; i<=18; i++) r.scores.push(r['H'+i]);
-      });
-      
-      document.getElementById('loading').style.display = 'none';
-      initLogo();
-      render();
-    })
-    .catch(err => {
-      document.getElementById('loading').innerHTML = '<p style="color:#ef4444;">데이터 로딩 실패. 새로고침 해주세요.</p>';
-      console.error(err);
-    });
+function sbFetch(table, params = '') {
+  return fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*${params}`, {
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+    }
+  }).then(res => res.json());
+}
+
+async function loadData() {
+  try {
+    const [members, courses, matches, records, seasons] = await Promise.all([
+      sbFetch('tb_member', '&order=순번.asc'),
+      sbFetch('tb_Course'),
+      sbFetch('tb_Match_Episodes', '&order=대회번호.asc'),
+      sbFetch('tb_Record', '&order=순번.asc&limit=10000'),
+      sbFetch('tb_Season')
+    ]);
+
+    DATA.members = members;
+
+    /* tb_Course: P1~P9 컬럼 → P[] 배열로 변환 */
+    DATA.courses = courses.map(c => ({
+      ...c,
+      P: [c.P1, c.P2, c.P3, c.P4, c.P5, c.P6, c.P7, c.P8, c.P9]
+    }));
+
+    DATA.matches  = matches;
+    DATA.seasons  = seasons;
+
+    /* tb_Record: H1~H18 → scores[] 배열 생성 */
+    DATA.records = records.map(r => ({
+      ...r,
+      scores: [r.H1,r.H2,r.H3,r.H4,r.H5,r.H6,r.H7,r.H8,r.H9,
+               r.H10,r.H11,r.H12,r.H13,r.H14,r.H15,r.H16,r.H17,r.H18]
+    }));
+
+    const activeSeason = DATA.seasons.find(s => s['진행상태'] === '진행중');
+    currentSeasonId = activeSeason
+      ? activeSeason['시즌ID']
+      : (DATA.seasons.length > 0 ? DATA.seasons[0]['시즌ID'] : '');
+
+    document.getElementById('loading').style.display = 'none';
+    initLogo();
+    render();
+  } catch(err) {
+    document.getElementById('loading').innerHTML = '<p style="color:#ef4444;">데이터 로딩 실패. 새로고침 해주세요.</p>';
+    console.error(err);
+  }
 }
 loadData();
 </script>
