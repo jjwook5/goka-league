@@ -134,9 +134,22 @@
       <button class="btn-primary" onclick="submitPhase2()">[2단계] 코스 매핑 저장</button>
     </div>
     <div id="tab-phase3" class="hidden">
-      <label class="form-label">AI 추출 스코어 (JSON 붙여넣기)</label>
-      <textarea id="jsonInput" class="textarea-json"></textarea>
-      <button class="btn-primary" style="background:#2d5a3d;margin-top:0;margin-bottom:16px;" onclick="previewScores()">데이터 검증 표 만들기</button>
+      <!-- AI 프롬프트 복사 카드 -->
+      <div style="background:#111f17;border:1px solid #3a6b4a;border-radius:10px;padding:12px;margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:800;color:#e8d5a3;margin-bottom:6px;">📸 STEP 1 — AI로 스코어카드 변환</div>
+        <div style="font-size:11px;color:#8faa97;line-height:1.7;margin-bottom:10px;">
+          별도 AI 창(Claude·ChatGPT 등)에 스코어카드 <b style="color:#d4e4da;">사진</b>과 함께<br>
+          아래 표준 프롬프트를 붙여넣기 하세요.
+        </div>
+        <button id="copyPromptBtn" class="btn-primary" style="background:#1a472a;margin-top:0;" onclick="copyPrompt()">
+          📋 표준 프롬프트 복사
+        </button>
+      </div>
+      <!-- JSON 붙여넣기 -->
+      <div style="font-size:11px;font-weight:800;color:#e8d5a3;margin-bottom:6px;">📋 STEP 2 — JSON 붙여넣기 &amp; 검증</div>
+      <label class="form-label">AI가 출력한 JSON을 아래에 붙여넣기</label>
+      <textarea id="jsonInput" class="textarea-json" placeholder='[&#10;  {"name": "홍길동", "scores": [0,1,-1,1,2,0,1,0,1,0,0,1,1,2,0,1,0,0]},&#10;  ...&#10;]'></textarea>
+      <button class="btn-primary" style="background:#2d5a3d;margin-top:0;margin-bottom:16px;" onclick="previewScores()">🔍 데이터 검증 표 만들기</button>
       <div class="score-grid-wrapper hidden" id="previewArea">
         <table class="grid-table">
           <thead><tr><th style="width:50px;text-align:left;">선수</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th></tr></thead>
@@ -521,6 +534,50 @@ async function submitPhase2() {
     ));
     hideLoading(); alert('코스 매핑이 저장되었습니다.'); switchPhaseTab('phase3');
   } catch(err) { hideLoading(); alert('오류: ' + err.message); }
+}
+
+/* ════════════════════════════════════════════════════
+   표준 프롬프트 복사
+   ════════════════════════════════════════════════════ */
+const SCORE_PROMPT = `첨부하는 골프 스코어카드 이미지를 보고, 선수 4명의 18홀 오버파 타수를 추출해서 JSON 형식으로 만들어줘.
+
+[규칙]
+
+1. 전반 9홀과 후반 9홀의 타수를 합쳐서 선수당 정확히 18개의 숫자로 배열(Array)을 만들어.
+
+2. 타수 표기법:
+   - 파(Par, 기호 0 또는 P 등)는 숫자 0으로 표기해.
+   - 버디(나비 그림, 파란색 글씨, 또는 -1)는 음수인 -1로 표기해. (이글은 -2)
+   - 보기, 더블보기 등 오버파(+1, +2 등)는 + 기호 없이 숫자 1, 2, 3으로 표기해.
+
+3. JSON 구조는 반드시 아래 형식을 정확히 지켜야 해. key 이름(name, scores)을 임의로 바꾸지 마.
+
+4. 인사말이나 다른 설명은 일절 하지 말고, 오직 JSON 코드만 딱 출력해 줘.
+
+[출력 형식 예시]
+
+[
+  {"name": "김성만", "scores": [0, 2, -1, 1, 1, 0, 1, 1, 2, 0, 0, 1, 1, 2, 0, 1, 0, 0]},
+  {"name": "석진욱", "scores": [0, 2, 0, 1, 2, 0, 2, 0, 2, 1, 1, 0, 2, 2, 1, 2, 0, 0]},
+  {"name": "신현정", "scores": [0, 1, -1, 1, 2, 0, 2, 1, 2, 2, 0, 2, 0, 2, 3, 1, 2, 1]},
+  {"name": "류영현", "scores": [0, 1, -1, 1, 2, 0, 2, 1, 2, 2, 0, 2, 0, 2, 3, 1, 2, 1]}
+]`;
+
+function copyPrompt() {
+  navigator.clipboard.writeText(SCORE_PROMPT).then(() => {
+    const btn = document.getElementById('copyPromptBtn');
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✅ 복사 완료!';
+    btn.style.background = '#153b1e';
+    setTimeout(() => { btn.innerHTML = orig; btn.style.background = '#1a472a'; }, 2000);
+  }).catch(() => {
+    /* clipboard API 실패 시 폴백 */
+    const ta = document.createElement('textarea');
+    ta.value = SCORE_PROMPT; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    alert('프롬프트가 복사되었습니다. AI 창에 붙여넣기 하세요.');
+  });
 }
 
 function previewScores() {
