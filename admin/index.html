@@ -185,14 +185,24 @@
     <div id="newMemberForm" class="hidden form-card">
       <h3>+ 신규 회원 등록</h3>
       <div class="form-group"><label class="form-label">성명 *</label><input id="nm_name" type="text" class="form-input" placeholder="홍길동"></div>
-      <div class="form-group"><label class="form-label">전화번호 * (010-0000-0000)</label><input id="nm_phone" type="text" class="form-input" placeholder="010-0000-0000"></div>
+      <div class="form-group">
+        <label class="form-label">성별 *</label>
+        <div style="display:flex;gap:8px;">
+          <button id="nm_gender_m" class="filter-btn" style="flex:1;" onclick="selectGender('남')">남성</button>
+          <button id="nm_gender_f" class="filter-btn" style="flex:1;" onclick="selectGender('여')">여성</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">회원번호 (자동채번)</label>
+        <input id="nm_memberid" type="text" class="form-input" disabled style="color:#e8d5a3;font-weight:700;letter-spacing:1px;">
+      </div>
       <div class="form-group"><label class="form-label">닉네임</label><input id="nm_nick" type="text" class="form-input" placeholder="선택 입력"></div>
       <div style="display:flex;gap:8px;">
         <div class="form-group" style="flex:1"><label class="form-label">소속리그</label>
           <select id="nm_league" class="form-select"><option value="1부">1부</option><option value="2부">2부</option><option value="3부">3부</option></select>
         </div>
         <div class="form-group" style="flex:1"><label class="form-label">등급</label>
-          <select id="nm_grade" class="form-select"><option value="선수">선수</option><option value="스텝">스텝</option><option value="매니저">매니저</option></select>
+          <select id="nm_grade" class="form-select"><option value="일반">일반</option><option value="스텝">스텝</option></select>
         </div>
       </div>
       <div style="display:flex;gap:8px;margin-top:4px;">
@@ -325,6 +335,7 @@ let currentMatchId = null;
 let currentVenue   = '';
 let isEditMode     = false;
 let memberFilter   = '활동중';
+let nmGender       = '';   /* 신규회원 등록 시 선택 성별 */
 
 /* ═══ UI 유틸 ═══ */
 function showLoading(msg) { document.getElementById('loading-text').innerText = msg; document.getElementById('admin-loading').style.display = 'flex'; }
@@ -644,6 +655,13 @@ function setMemberFilter(filter) {
   renderMemberList();
 }
 
+function getMemberGender(phone) {
+  if (!phone) return '';
+  const p = phone.split('-');
+  if (p.length === 3) { if (p[1] === '1000') return '남'; if (p[1] === '2000') return '여'; }
+  return '';
+}
+
 function renderMemberList() {
   const list = document.getElementById('memberList'); list.innerHTML = '';
   const members = memberFilter === '활동중'
@@ -654,11 +672,13 @@ function renderMemberList() {
     const isActive = m['활동상태'] === '활동중';
     const tagClass = isActive ? 'tag-active' : 'tag-inactive';
     const tagText  = isActive ? '활동중' : '중지';
+    const gender   = getMemberGender(m['전화번호']);
+    const genderTag = gender ? `<span style="font-size:10px;color:#8faa97;">(${gender})</span>` : '';
     const div = document.createElement('div'); div.className = 'mgmt-row';
     div.innerHTML = `
       <div class="mgmt-row-info">
-        <div class="name">${m['성명']} ${m['닉네임'] ? '<span style="color:#8faa97;font-size:11px;">('+m['닉네임']+')</span>' : ''}</div>
-        <div class="sub">${m['소속리그']} · ${m['등급'] || '-'} · ${m['전화번호']}</div>
+        <div class="name">${m['성명']} ${genderTag} ${m['닉네임'] ? '<span style="color:#8faa97;font-size:11px;">('+m['닉네임']+')</span>' : ''}</div>
+        <div class="sub">${m['소속리그']} · ${m['등급'] || '-'} · <span style="color:#5a7f6a;font-size:10px;">No.${m['전화번호']}</span></div>
       </div>
       <div class="mgmt-row-actions">
         <span class="status-tag ${tagClass}">${tagText}</span>
@@ -671,9 +691,41 @@ function renderMemberList() {
   });
 }
 
+function calcNextMemberSeq() {
+  /* 기존 전화번호(회원번호) 뒷4자리 중 최댓값 + 1 */
+  const nums = globalData.members.map(m => {
+    const parts = (m['전화번호'] || '').split('-');
+    return parts.length === 3 ? (parseInt(parts[2]) || 0) : 0;
+  });
+  const maxNum = nums.length > 0 ? Math.max(...nums) : 0;
+  return String(maxNum + 1).padStart(4, '0');
+}
+
+function selectGender(g) {
+  nmGender = g;
+  document.getElementById('nm_gender_m').classList.toggle('active', g === '남');
+  document.getElementById('nm_gender_f').classList.toggle('active', g === '여');
+  const seq    = document.getElementById('nm_memberid').dataset.seq || calcNextMemberSeq();
+  const prefix = g === '남' ? '010-1000-' : '010-2000-';
+  const input  = document.getElementById('nm_memberid');
+  input.value  = prefix + seq;
+  input.dataset.seq = seq;
+}
+
 function toggleNewMemberForm(show) {
   document.getElementById('newMemberForm').classList.toggle('hidden', !show);
-  if (show) { document.getElementById('editMemberForm').classList.add('hidden'); }
+  if (show) {
+    document.getElementById('editMemberForm').classList.add('hidden');
+    /* 성별 초기화 */
+    nmGender = '';
+    document.getElementById('nm_gender_m').classList.remove('active');
+    document.getElementById('nm_gender_f').classList.remove('active');
+    /* 채번 계산 */
+    const seq = calcNextMemberSeq();
+    const input = document.getElementById('nm_memberid');
+    input.value = '← 성별을 먼저 선택하세요';
+    input.dataset.seq = seq;
+  }
 }
 function toggleEditMemberForm(show) {
   document.getElementById('editMemberForm').classList.toggle('hidden', !show);
@@ -692,11 +744,13 @@ function openEditMember(phone) {
 }
 
 async function submitNewMember() {
-  const name  = document.getElementById('nm_name').value.trim();
-  const phone = document.getElementById('nm_phone').value.trim();
-  if (!name || !phone) return alert('성명과 전화번호는 필수입니다.');
+  const name = document.getElementById('nm_name').value.trim();
+  if (!name)     return alert('성명을 입력해주세요.');
+  if (!nmGender) return alert('성별을 선택해주세요.');
+  const phone = document.getElementById('nm_memberid').value;
+  if (!phone || phone.includes('선택')) return alert('회원번호를 확인해주세요.');
   const dup = globalData.members.find(m => m['전화번호'] === phone);
-  if (dup) return alert('이미 등록된 전화번호입니다.');
+  if (dup) return alert('이미 사용중인 회원번호입니다.\n잠시 후 다시 시도해주세요.');
   showLoading('회원 등록 중...');
   try {
     const maxRes = await sbGet('tb_member', '&select=순번&order=순번.desc&limit=1');
@@ -708,9 +762,11 @@ async function submitNewMember() {
       등급: document.getElementById('nm_grade').value,
       활동상태: '활동중'
     }]);
-    hideLoading(); alert(`${name} 회원이 등록되었습니다.`);
+    hideLoading();
+    alert(`${name} 회원이 등록되었습니다.\n회원번호: ${phone}`);
     toggleNewMemberForm(false);
-    ['nm_name','nm_nick'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('nm_name').value = '';
+    document.getElementById('nm_nick').value = '';
     await loadAdminInitData(); renderMemberList();
   } catch(err) { hideLoading(); alert('오류: ' + err.message); }
 }
