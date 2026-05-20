@@ -14,8 +14,11 @@
   .header h1 { font-size: 18px; font-weight: 900; color: #e8d5a3; letter-spacing: 1px; }
   .session-bar { background: #111f17; padding: 12px 16px; border-bottom: 2px solid #b87333; }
   .nav { display: flex; background: #111f17; border-bottom: 1px solid #1e3a2a; position: sticky; top: 0; z-index: 10; }
-  .nav-btn { flex: 1; border: none; background: transparent; padding: 12px 4px; color: #6b8f77; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+  .nav-btn { flex: 1; border: none; background: transparent; padding: 10px 2px; color: #6b8f77; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
   .nav-btn.active { color: #e8d5a3; border-bottom: 2px solid #e8d5a3; background: rgba(232,213,163,0.05); }
+  .phase-nav { display: flex; background: #0d1f15; border-bottom: 1px solid #1e3a2a; }
+  .phase-btn { flex: 1; border: none; background: transparent; padding: 10px 4px; color: #6b8f77; font-size: 11px; font-weight: 700; cursor: pointer; }
+  .phase-btn.active { color: #e8d5a3; border-bottom: 2px solid #3a6b4a; }
   .main { padding: 16px; }
   .hidden { display: none !important; }
   .form-group { margin-bottom: 12px; }
@@ -23,11 +26,15 @@
   .form-input, .form-select { width: 100%; padding: 10px 12px; border-radius: 8px; background: #111f17; border: 1px solid #2d5a3d; color: #d4e4da; font-size: 14px; outline: none; }
   .btn-primary { width: 100%; padding: 14px; background: #1a472a; color: #e8d5a3; border: 1px solid #2d5a3d; border-radius: 8px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 6px; }
   .btn-primary:active { background: #0d1f15; }
+  .btn-sm { padding: 6px 12px; border-radius: 6px; border: 1px solid #2d5a3d; font-size: 11px; font-weight: 700; cursor: pointer; background: #1e3a2a; color: #d4e4da; }
+  .btn-sm.danger { background: #3b1515; border-color: #7f1d1d; color: #fca5a5; }
+  .btn-sm.success { background: #153b1e; border-color: #1a472a; color: #86efac; }
+  .btn-sm.warning { background: #3b2a00; border-color: #b87333; color: #fcd34d; }
   .roster-area { background: #111f17; border: 1px solid #2d5a3d; border-radius: 8px; padding: 10px; height: 130px; overflow-y: auto; margin-bottom: 16px; display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; }
   .player-chip { padding: 6px 10px; background: #1e3a2a; border: 1px solid #3a6b4a; border-radius: 16px; font-size: 12px; color: #d4e4da; cursor: pointer; display: flex; align-items: center; gap: 4px; }
   .group-box { background: #0d1f15; border: 1px solid #2d5a3d; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
   .group-title { font-size: 13px; font-weight: 700; color: #e8d5a3; margin-bottom: 8px; }
-  .slot-row { display: flex; justify-content: space-between; align-items: center; background: #111f17; padding: 8px 10px; border-radius: 6px; border: 1px dashed #2d5a3d; margin-bottom: 6px; min-height: 36px;}
+  .slot-row { display: flex; justify-content: space-between; align-items: center; background: #111f17; padding: 8px 10px; border-radius: 6px; border: 1px dashed #2d5a3d; margin-bottom: 6px; min-height: 36px; }
   .team-toggle { font-size: 10px; padding: 4px 8px; border-radius: 4px; border: none; font-weight: 700; cursor: pointer; }
   .team-white { background: #f8fafc; color: #0f172a; } .team-blue { background: #3b82f6; color: #ffffff; }
   .textarea-json { width: 100%; height: 120px; padding: 10px; border-radius: 8px; background: #111f17; border: 1px solid #2d5a3d; color: #8faa97; font-family: monospace; font-size: 11px; margin-bottom: 10px; resize: none; }
@@ -36,6 +43,28 @@
   .grid-table th { color: #8faa97; font-weight: 600; padding: 6px 4px; border-bottom: 1px solid #1e3a2a; font-size: 10px; }
   .grid-table td { padding: 8px 4px; border-bottom: 1px solid #152a1e; font-weight: 700; }
   .score-under { color: #3b82f6; } .score-par { color: #d4e4da; } .score-over { color: #ef4444; }
+  /* ═══ 관리 공통 스타일 ═══ */
+  .form-card { background: #111f17; border: 1px solid #3a6b4a; border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+  .form-card h3 { font-size: 13px; color: #e8d5a3; font-weight: 800; margin-bottom: 12px; }
+  .mgmt-row { display: flex; align-items: center; gap: 8px; padding: 10px; background: #111f17; border-radius: 8px; border: 1px solid #1e3a2a; margin-bottom: 6px; }
+  .mgmt-row-info { flex: 1; min-width: 0; }
+  .mgmt-row-info .name { font-size: 13px; font-weight: 700; color: #d4e4da; }
+  .mgmt-row-info .sub { font-size: 10px; color: #6b8f77; margin-top: 2px; }
+  .mgmt-row-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .status-tag { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 10px; }
+  .tag-active { background: #153b1e; color: #86efac; border: 1px solid #1a472a; }
+  .tag-inactive { background: #2d1515; color: #f87171; border: 1px solid #7f1d1d; }
+  .tag-yes { background: #153b1e; color: #86efac; border: 1px solid #1a472a; }
+  .tag-no { background: #2d1515; color: #f87171; border: 1px solid #7f1d1d; }
+  .filter-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .filter-btn { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #2d5a3d; background: #111f17; color: #6b8f77; font-size: 12px; font-weight: 700; cursor: pointer; text-align: center; }
+  .filter-btn.active { background: #1a472a; color: #e8d5a3; border-color: #3a6b4a; }
+  .par-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; margin-top: 6px; }
+  .par-grid select { padding: 6px 2px; background: #0d1f15; border: 1px solid #2d5a3d; color: #d4e4da; border-radius: 4px; font-size: 12px; text-align: center; outline: none; }
+  .par-label { font-size: 9px; color: #5a7f6a; text-align: center; margin-bottom: 2px; }
+  .section-divider { font-size: 11px; color: #5a7f6a; font-weight: 700; padding: 8px 0 6px; border-bottom: 1px solid #1e3a2a; margin-bottom: 8px; }
+  .season-row { background: #111f17; border: 1px solid #2d5a3d; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
+  .season-row.active { border-color: #b87333; }
   #admin-loading { position: fixed; inset: 0; background: rgba(13,31,21,0.8); display: none; align-items: center; justify-content: center; z-index: 999; flex-direction: column; }
   .spinner { width: 40px; height: 40px; border: 3px solid #1e3a2a; border-top-color: #e8d5a3; border-radius: 50%; animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -44,222 +73,337 @@
 <body>
 <header class="header"><h1>⚙️ 대회 관리자 (Admin)</h1></header>
 
-<div class="session-bar">
+<!-- 대회관리 전용: 세션 선택 바 -->
+<div id="sessionBar" class="session-bar">
   <label class="form-label" style="color:#e8d5a3;">🔄 작업할 대회 선택</label>
   <select id="sessionMatchSelector" class="form-select" onchange="onSelectMatchSession(this.value)">
     <option value="NEW">+ 새 대회 생성하기</option>
   </select>
 </div>
 
+<!-- 메인 탭 (4개) -->
 <nav class="nav">
-  <button class="nav-btn active" id="btn-tab-phase1" onclick="switchTab('phase1')">1. 세팅&수정</button>
-  <button class="nav-btn" id="btn-tab-phase2" onclick="switchTab('phase2')">2. 현장 매핑</button>
-  <button class="nav-btn" id="btn-tab-phase3" onclick="switchTab('phase3')">3. 스코어 입력</button>
+  <button class="nav-btn active" id="main-btn-match"  onclick="switchMainTab('match')">⚙️ 대회관리</button>
+  <button class="nav-btn"        id="main-btn-member" onclick="switchMainTab('member')">👤 회원관리</button>
+  <button class="nav-btn"        id="main-btn-course" onclick="switchMainTab('course')">⛳ 코스관리</button>
+  <button class="nav-btn"        id="main-btn-season" onclick="switchMainTab('season')">🏆 시즌관리</button>
 </nav>
 
+<!-- 대회관리 전용: 단계 탭 -->
+<div class="phase-nav" id="phaseNav">
+  <button class="phase-btn active" id="btn-tab-phase1" onclick="switchPhaseTab('phase1')">1. 세팅&수정</button>
+  <button class="phase-btn"        id="btn-tab-phase2" onclick="switchPhaseTab('phase2')">2. 현장 매핑</button>
+  <button class="phase-btn"        id="btn-tab-phase3" onclick="switchPhaseTab('phase3')">3. 스코어 입력</button>
+</div>
+
 <main class="main">
-  <div id="tab-phase1">
-    <div id="phase1-stepA">
-      <div class="form-group"><label class="form-label">대회명</label><input type="text" id="matchName" class="form-input"></div>
-      <div class="form-group"><label class="form-label">날짜 (YYYYMMDD 채번)</label><input type="date" id="matchDate" class="form-input"></div>
-      <div class="form-group"><label class="form-label">구장명</label><select id="matchVenue" class="form-select"></select></div>
+
+  <!-- ══════════════ 대회관리 ══════════════ -->
+  <div id="tab-match">
+    <div id="tab-phase1">
+      <div id="phase1-stepA">
+        <div class="form-group"><label class="form-label">대회명</label><input type="text" id="matchName" class="form-input"></div>
+        <div class="form-group"><label class="form-label">날짜 (YYYYMMDD 채번)</label><input type="date" id="matchDate" class="form-input"></div>
+        <div class="form-group"><label class="form-label">구장명</label><select id="matchVenue" class="form-select"></select></div>
+        <div class="form-group">
+          <label class="form-label">총 참가 인원</label>
+          <select id="playerCount" class="form-select">
+            <option value="8">8명 (2팀)</option><option value="12" selected>12명 (3팀)</option>
+            <option value="16">16명 (4팀)</option><option value="20">20명 (5팀)</option>
+            <option value="24">24명 (6팀)</option><option value="28">28명 (7팀)</option>
+            <option value="32">32명 (8팀)</option><option value="36">36명 (9팀)</option>
+            <option value="40">40명 (10팀)</option>
+          </select>
+        </div>
+        <button class="btn-primary" onclick="goToStepB()">다음: 조 편성하기 ➔</button>
+      </div>
+      <div id="phase1-stepB" class="hidden">
+        <button class="btn-primary" style="background:transparent;border:none;color:#8faa97;font-size:12px;text-align:left;padding:0;margin-bottom:10px;" onclick="goToStepA()">← 기본 정보로 돌아가기</button>
+        <label class="form-label">대기 명단 (터치하여 조에 추가)</label>
+        <div class="roster-area" id="rosterList"></div>
+        <label class="form-label">조 편성 현황</label>
+        <div id="groupContainer"></div>
+        <button class="btn-primary" id="btnSaveRoster" onclick="submitPhase1()">[1단계] 명단 확정 및 DB 적재</button>
+      </div>
+    </div>
+    <div id="tab-phase2" class="hidden">
+      <div class="form-group"><label class="form-label">선택된 구장</label><input type="text" id="selectedVenueText" class="form-input" disabled></div>
+      <label class="form-label">조별 코스 매핑</label>
+      <div id="mappingContainer"></div>
+      <button class="btn-primary" onclick="submitPhase2()">[2단계] 코스 매핑 저장</button>
+    </div>
+    <div id="tab-phase3" class="hidden">
+      <label class="form-label">AI 추출 스코어 (JSON 붙여넣기)</label>
+      <textarea id="jsonInput" class="textarea-json"></textarea>
+      <button class="btn-primary" style="background:#2d5a3d;margin-top:0;margin-bottom:16px;" onclick="previewScores()">데이터 검증 표 만들기</button>
+      <div class="score-grid-wrapper hidden" id="previewArea">
+        <table class="grid-table">
+          <thead><tr><th style="width:50px;text-align:left;">선수</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th></tr></thead>
+          <tbody id="previewBody"></tbody>
+        </table>
+      </div>
+      <div id="actionButtons" class="hidden" style="display:flex;flex-direction:column;gap:8px;margin-top:16px;">
+        <div style="display:flex;gap:8px;">
+          <button class="btn-primary" style="flex:1;background:#1e3a8a;" onclick="submitPhase3(false)">💾 부분 임시저장</button>
+          <button class="btn-primary" style="flex:1;background:#b87333;color:#fff;" onclick="submitPhase3(true)">🚩 대회 최종 마감</button>
+        </div>
+        <button class="btn-primary" style="background:#7c3aed;color:#fff;margin-top:4px;" onclick="drawExcludeHoles()">🎲 제외홀 추첨 & 신페리오 정산</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ 회원관리 ══════════════ -->
+  <div id="tab-member" class="hidden">
+    <!-- 신규 등록 폼 -->
+    <div id="newMemberForm" class="hidden form-card">
+      <h3>+ 신규 회원 등록</h3>
+      <div class="form-group"><label class="form-label">성명 *</label><input id="nm_name" type="text" class="form-input" placeholder="홍길동"></div>
+      <div class="form-group"><label class="form-label">전화번호 * (010-0000-0000)</label><input id="nm_phone" type="text" class="form-input" placeholder="010-0000-0000"></div>
+      <div class="form-group"><label class="form-label">닉네임</label><input id="nm_nick" type="text" class="form-input" placeholder="선택 입력"></div>
+      <div style="display:flex;gap:8px;">
+        <div class="form-group" style="flex:1"><label class="form-label">소속리그</label>
+          <select id="nm_league" class="form-select"><option value="1부">1부</option><option value="2부">2부</option><option value="3부">3부</option></select>
+        </div>
+        <div class="form-group" style="flex:1"><label class="form-label">등급</label>
+          <select id="nm_grade" class="form-select"><option value="선수">선수</option><option value="스텝">스텝</option><option value="매니저">매니저</option></select>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="btn-primary" style="flex:1;" onclick="submitNewMember()">✅ 등록</button>
+        <button class="btn-primary" style="flex:1;background:#2d1515;border-color:#7f1d1d;" onclick="toggleNewMemberForm(false)">✕ 취소</button>
+      </div>
+    </div>
+    <!-- 수정 폼 -->
+    <div id="editMemberForm" class="hidden form-card">
+      <h3>✏️ 회원 정보 수정</h3>
+      <input type="hidden" id="em_phone">
+      <div class="form-group"><label class="form-label">성명</label><input id="em_name" type="text" class="form-input" disabled style="opacity:0.5;"></div>
+      <div class="form-group"><label class="form-label">닉네임</label><input id="em_nick" type="text" class="form-input"></div>
+      <div style="display:flex;gap:8px;">
+        <div class="form-group" style="flex:1"><label class="form-label">소속리그</label>
+          <select id="em_league" class="form-select"><option value="1부">1부</option><option value="2부">2부</option><option value="3부">3부</option></select>
+        </div>
+        <div class="form-group" style="flex:1"><label class="form-label">등급</label>
+          <select id="em_grade" class="form-select"><option value="선수">선수</option><option value="스텝">스텝</option><option value="매니저">매니저</option></select>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="btn-primary" style="flex:1;" onclick="submitEditMember()">✅ 저장</button>
+        <button class="btn-primary" style="flex:1;background:#2d1515;border-color:#7f1d1d;" onclick="toggleEditMemberForm(false)">✕ 취소</button>
+      </div>
+    </div>
+
+    <button class="btn-primary" style="margin-bottom:14px;" onclick="toggleNewMemberForm(true)">+ 신규 회원 등록</button>
+    <div class="filter-row">
+      <button class="filter-btn active" id="mf-active"  onclick="setMemberFilter('활동중')">활동중만</button>
+      <button class="filter-btn"        id="mf-all"     onclick="setMemberFilter('전체')">전체 보기</button>
+    </div>
+    <div id="memberList"></div>
+  </div>
+
+  <!-- ══════════════ 코스관리 ══════════════ -->
+  <div id="tab-course" class="hidden">
+    <div id="newCourseForm" class="hidden form-card">
+      <h3>+ 신규 코스 등록</h3>
+      <div style="display:flex;gap:8px;">
+        <div class="form-group" style="flex:1"><label class="form-label">구장명 *</label>
+          <input id="nc_venue" type="text" class="form-input" placeholder="기존 또는 신규 구장명">
+        </div>
+        <div class="form-group" style="flex:1"><label class="form-label">코스명 *</label>
+          <input id="nc_course" type="text" class="form-input" placeholder="예: 동코스">
+        </div>
+      </div>
       <div class="form-group">
-        <label class="form-label">총 참가 인원 (동적 생성)</label>
-        <select id="playerCount" class="form-select">
-          <option value="8">8명 (2팀)</option>
-          <option value="12" selected>12명 (3팀)</option>
-          <option value="16">16명 (4팀)</option>
-          <option value="20">20명 (5팀)</option>
-          <option value="24">24명 (6팀)</option>
-          <option value="28">28명 (7팀)</option>
-          <option value="32">32명 (8팀)</option>
-          <option value="36">36명 (9팀)</option>
-          <option value="40">40명 (10팀)</option>
-        </select>
+        <label class="form-label">홀별 파 (P1 ~ P9)</label>
+        <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:3px;margin-top:4px;">
+          <div style="font-size:9px;color:#5a7f6a;text-align:center;">H1</div>
+          <div style="font-size:9px;color:#5a7f6a;text-align:center;">H2</div>
+          <div style="font-size:9px;color:#5a7f6a;text-align:center;">H3</div>
+          <div style="font-size:9px;color:#5a7f6a;text-align:center;">H4</div>
+          <div style="font-size:9px;color:#5a7f6a;text-align:center;">H5</div>
+          <div style="font-size:9px;color:#5a7f6a;text-align:center;">H6</div>
+          <div style="font-size:9px;color:#5a7f6a;text-align:center;">H7</div>
+          <div style="font-size:9px;color:#5a7f6a;text-align:center;">H8</div>
+          <div style="font-size:9px;color:#5a7f6a;text-align:center;">H9</div>
+          <select id="nc_p1" class="form-select" style="padding:6px 2px;font-size:12px;text-align:center;"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select>
+          <select id="nc_p2" class="form-select" style="padding:6px 2px;font-size:12px;text-align:center;"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select>
+          <select id="nc_p3" class="form-select" style="padding:6px 2px;font-size:12px;text-align:center;"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select>
+          <select id="nc_p4" class="form-select" style="padding:6px 2px;font-size:12px;text-align:center;"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select>
+          <select id="nc_p5" class="form-select" style="padding:6px 2px;font-size:12px;text-align:center;"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select>
+          <select id="nc_p6" class="form-select" style="padding:6px 2px;font-size:12px;text-align:center;"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select>
+          <select id="nc_p7" class="form-select" style="padding:6px 2px;font-size:12px;text-align:center;"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select>
+          <select id="nc_p8" class="form-select" style="padding:6px 2px;font-size:12px;text-align:center;"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select>
+          <select id="nc_p9" class="form-select" style="padding:6px 2px;font-size:12px;text-align:center;"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select>
+        </div>
       </div>
-      <button class="btn-primary" onclick="goToStepB()">다음: 조 편성하기 ➔</button>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="btn-primary" style="flex:1;" onclick="submitNewCourse()">✅ 등록</button>
+        <button class="btn-primary" style="flex:1;background:#2d1515;border-color:#7f1d1d;" onclick="toggleNewCourseForm(false)">✕ 취소</button>
+      </div>
     </div>
-    <div id="phase1-stepB" class="hidden">
-      <button class="btn-primary" style="background:transparent; border:none; color:#8faa97; font-size:12px; text-align:left; padding:0; margin-bottom:10px;" onclick="goToStepA()">← 기본 정보로 돌아가기</button>
-      <label class="form-label">대기 명단 (터치하여 조에 추가)</label>
-      <div class="roster-area" id="rosterList"></div>
-      <label class="form-label">조 편성 현황</label>
-      <div id="groupContainer"></div>
-      <button class="btn-primary" id="btnSaveRoster" onclick="submitPhase1()">[1단계] 명단 확정 및 DB 적재</button>
-    </div>
+    <button class="btn-primary" style="margin-bottom:14px;" onclick="toggleNewCourseForm(true)">+ 신규 코스 등록</button>
+    <div id="courseList"></div>
   </div>
 
-  <div id="tab-phase2" class="hidden">
-    <div class="form-group"><label class="form-label">선택된 구장</label><input type="text" id="selectedVenueText" class="form-input" disabled></div>
-    <label class="form-label">조별 코스 매핑</label>
-    <div id="mappingContainer"></div>
-    <button class="btn-primary" onclick="submitPhase2()">[2단계] 코스 매핑 저장</button>
+  <!-- ══════════════ 시즌관리 ══════════════ -->
+  <div id="tab-season" class="hidden">
+    <div id="newSeasonForm" class="hidden form-card">
+      <h3>+ 새 시즌 생성</h3>
+      <div class="form-group"><label class="form-label">시즌 ID * (예: S2026_2)</label><input id="ns_id" type="text" class="form-input" placeholder="S2026_2"></div>
+      <div class="form-group"><label class="form-label">시즌명 * (예: 2026년 하반기)</label><input id="ns_name" type="text" class="form-input" placeholder="2026년 하반기"></div>
+      <div class="form-group"><label class="form-label">시작 대회 날짜 *</label><input id="ns_start" type="date" class="form-input"></div>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="btn-primary" style="flex:1;" onclick="submitNewSeason()">✅ 생성</button>
+        <button class="btn-primary" style="flex:1;background:#2d1515;border-color:#7f1d1d;" onclick="toggleNewSeasonForm(false)">✕ 취소</button>
+      </div>
+    </div>
+    <button class="btn-primary" style="margin-bottom:14px;" onclick="toggleNewSeasonForm(true)">+ 새 시즌 생성</button>
+    <div id="seasonList"></div>
   </div>
 
-  <div id="tab-phase3" class="hidden">
-    <label class="form-label">AI 추출 스코어 (JSON 붙여넣기)</label>
-    <textarea id="jsonInput" class="textarea-json"></textarea>
-    <button class="btn-primary" style="background: #2d5a3d; margin-top: 0; margin-bottom: 16px;" onclick="previewScores()">데이터 검증 표 만들기</button>
-    <div class="score-grid-wrapper hidden" id="previewArea">
-      <table class="grid-table">
-        <thead>
-          <tr><th style="width:50px;text-align:left;">선수</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th></tr>
-        </thead>
-        <tbody id="previewBody"></tbody>
-      </table>
-    </div>
-    <div id="actionButtons" class="hidden" style="display:flex; flex-direction:column; gap:8px; margin-top:16px;">
-      <div style="display:flex; gap:8px;">
-        <button class="btn-primary" style="flex:1; background:#1e3a8a;" onclick="submitPhase3(false)">💾 부분 임시저장</button>
-        <button class="btn-primary" style="flex:1; background:#b87333; color:#fff;" onclick="submitPhase3(true)">🚩 대회 최종 마감</button>
-      </div>
-      <button class="btn-primary" style="background:#7c3aed; color:#fff; margin-top:4px;" onclick="drawExcludeHoles()">🎲 제외홀 추첨 & 신페리오 정산</button>
-    </div>
-  </div>
 </main>
-<div id="admin-loading"><div class="spinner"></div><p style="color:#e8d5a3; margin-top:10px; font-size:12px;" id="loading-text">처리 중...</p></div>
+<div id="admin-loading"><div class="spinner"></div><p style="color:#e8d5a3;margin-top:10px;font-size:12px;" id="loading-text">처리 중...</p></div>
 
 <script>
 /* ═══════════════════════════════════════════════════
-   ★ Supabase 연결 설정 (Admin — 쓰기 권한)
+   ★ Supabase 연결 설정
    ═══════════════════════════════════════════════════ */
 const SUPABASE_URL = 'https://ogyzzmlxxmplwaawraoc.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9neXp6bWx4eG1wbHdhYXdyYW9jIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTIxMzY1MiwiZXhwIjoyMDk0Nzg5NjUyfQ.rfltEsqCP23jQ21gKF8BIRzGos5-PORKpuMXouClJYs';
 
-/* ═══ Supabase REST 헬퍼 함수 ═══ */
-const SB_H = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
+const SB_H  = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
 const SB_HW = { ...SB_H, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };
 
 function sbGet(table, query = '') {
   return fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*${query}`, { headers: SB_H }).then(r => r.json());
 }
 async function sbPost(table, body) {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, { method: 'POST', headers: SB_HW, body: JSON.stringify(body) });
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, { method:'POST', headers: SB_HW, body: JSON.stringify(body) });
   if (!r.ok) throw new Error(await r.text());
 }
 async function sbPatch(table, filter, body) {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filter}`, { method: 'PATCH', headers: SB_HW, body: JSON.stringify(body) });
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filter}`, { method:'PATCH', headers: SB_HW, body: JSON.stringify(body) });
   if (!r.ok) throw new Error(await r.text());
 }
 async function sbDelete(table, filter) {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filter}`, { method: 'DELETE', headers: SB_H });
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filter}`, { method:'DELETE', headers: SB_H });
   if (!r.ok) throw new Error(await r.text());
 }
 
 /* ═══ 상태 변수 ═══ */
-let globalData = { members: [], courses: [], records: [], matchEpisodes: [] };
+let globalData = { members: [], courses: [], records: [], matchEpisodes: [], seasons: [] };
 let activeMatches = [];
 let assignedGroups = {};
-let currentMatchId = null; // bigint (숫자)
-let currentVenue = '';
-let isEditMode = false;
+let currentMatchId = null;
+let currentVenue   = '';
+let isEditMode     = false;
+let memberFilter   = '활동중';
 
 /* ═══ UI 유틸 ═══ */
-function switchTab(tabId) {
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+function showLoading(msg) { document.getElementById('loading-text').innerText = msg; document.getElementById('admin-loading').style.display = 'flex'; }
+function hideLoading() { document.getElementById('admin-loading').style.display = 'none'; }
+
+/* ═══ 메인 탭 전환 ═══ */
+function switchMainTab(tabId) {
+  ['match','member','course','season'].forEach(t => {
+    document.getElementById('main-btn-' + t).classList.toggle('active', t === tabId);
+    document.getElementById('tab-' + t).classList.toggle('hidden', t !== tabId);
+  });
+  document.getElementById('sessionBar').classList.toggle('hidden', tabId !== 'match');
+  document.getElementById('phaseNav').classList.toggle('hidden', tabId !== 'match');
+
+  if (tabId === 'member') renderMemberList();
+  if (tabId === 'course') renderCourseList();
+  if (tabId === 'season') renderSeasonList();
+}
+
+/* ═══ 단계 탭 전환 (대회관리) ═══ */
+function switchPhaseTab(tabId) {
+  document.querySelectorAll('.phase-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('btn-tab-' + tabId).classList.add('active');
   ['phase1','phase2','phase3'].forEach(t => document.getElementById('tab-'+t).classList.toggle('hidden', t !== tabId));
   if (tabId === 'phase2') renderMappingUI();
 }
-function showLoading(msg) { document.getElementById('loading-text').innerText = msg; document.getElementById('admin-loading').style.display = 'flex'; }
-function hideLoading() { document.getElementById('admin-loading').style.display = 'none'; }
 
 window.onload = function() { loadAdminInitData(); };
 
 /* ═══════════════════════════════════════════════════
-   초기 데이터 로딩 (전체 테이블 병렬 조회)
+   초기 데이터 로딩
    ═══════════════════════════════════════════════════ */
 async function loadAdminInitData() {
   showLoading('데이터 동기화 중...');
   try {
-    const [members, courses, records, matchEpisodes] = await Promise.all([
+    const [members, courses, records, matchEpisodes, seasons] = await Promise.all([
       sbGet('tb_member', '&order=순번.asc'),
       sbGet('tb_Course'),
       sbGet('tb_Record', '&order=순번.asc&limit=10000'),
-      sbGet('tb_Match_Episodes', '&order=대회번호.asc')
+      sbGet('tb_Match_Episodes', '&order=대회번호.asc'),
+      sbGet('tb_Season', '&order=시작_대회번호.asc')
     ]);
-
-    globalData.members = members;
-    /* tb_Course: P1~P9 → P[] 배열 변환 */
-    globalData.courses = courses.map(c => ({
-      ...c, P: [c.P1,c.P2,c.P3,c.P4,c.P5,c.P6,c.P7,c.P8,c.P9]
-    }));
-    globalData.records = records;
+    globalData.members      = members;
+    globalData.courses      = courses.map(c => ({ ...c, P: [c.P1,c.P2,c.P3,c.P4,c.P5,c.P6,c.P7,c.P8,c.P9] }));
+    globalData.records      = records;
     globalData.matchEpisodes = matchEpisodes;
+    globalData.seasons      = seasons;
 
-    /* 구장 셀렉트 채우기 */
+    /* 구장 셀렉트: 사용여부='Y' 코스만 */
     const venueSelect = document.getElementById('matchVenue');
     venueSelect.innerHTML = '';
-    [...new Set(courses.map(c => c['구장명']))].forEach(v => {
+    [...new Set(courses.filter(c => c['사용여부'] === 'Y').map(c => c['구장명']))].forEach(v => {
       const opt = document.createElement('option'); opt.value = v; opt.innerText = v; venueSelect.appendChild(opt);
     });
 
-    /* 진행중 대회 목록 (완료 제외, 대회번호 기준 중복 제거) */
+    /* 진행중 대회 목록 */
     const matchMap = {};
     matchEpisodes.filter(m => m['완료구분'] !== '완료').forEach(m => {
-      if (!matchMap[m['대회번호']]) {
-        matchMap[m['대회번호']] = { matchId: m['대회번호'], matchName: m['대회명'], date: m['날짜'], venue: m['구장명'] };
-      }
+      if (!matchMap[m['대회번호']]) matchMap[m['대회번호']] = { matchId: m['대회번호'], matchName: m['대회명'], date: m['날짜'], venue: m['구장명'] };
     });
     activeMatches = Object.values(matchMap);
 
     const selector = document.getElementById('sessionMatchSelector');
     selector.innerHTML = '<option value="NEW">+ 새 대회 생성하기</option>';
     activeMatches.forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m.matchId;
-      opt.innerText = `[진행중] ${m.matchName}`;
-      selector.appendChild(opt);
+      const opt = document.createElement('option'); opt.value = m.matchId; opt.innerText = `[진행중] ${m.matchName}`; selector.appendChild(opt);
     });
 
     hideLoading();
-  } catch(err) {
-    hideLoading();
-    alert('데이터 로딩 실패: ' + err.message);
-  }
+  } catch(err) { hideLoading(); alert('데이터 로딩 실패: ' + err.message); }
 }
 
-/* ═══════════════════════════════════════════════════
-   대회 세션 선택 / 복원
-   ═══════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════
+   대회관리 — 기존 기능 유지
+   ════════════════════════════════════════════════════ */
 function onSelectMatchSession(val) {
   if (val === 'NEW') {
     isEditMode = false; currentMatchId = null; currentVenue = '';
-    document.getElementById('matchName').value = '';
-    document.getElementById('matchDate').value = '';
+    document.getElementById('matchName').value = ''; document.getElementById('matchDate').value = '';
     document.getElementById('btnSaveRoster').innerText = '[1단계] 명단 확정 및 DB 적재';
-    goToStepA(); switchTab('phase1');
+    goToStepA(); switchPhaseTab('phase1');
   } else {
     isEditMode = true;
     const matched = activeMatches.find(m => String(m.matchId) === String(val));
     if (matched) {
-      currentMatchId = matched.matchId;
-      currentVenue = matched.venue;
-
+      currentMatchId = matched.matchId; currentVenue = matched.venue;
       const matchRecords = globalData.records.filter(r => r['대회번호'] === currentMatchId);
       assignedGroups = {};
       const totalPlayers = matchRecords.length || 12;
       document.getElementById('playerCount').value = totalPlayers;
       for (let i = 1; i <= (totalPlayers / 4); i++) assignedGroups[i+'조'] = [];
       matchRecords.forEach(r => {
-        const g = r['조번호'];
-        if (!assignedGroups[g]) assignedGroups[g] = [];
+        const g = r['조번호']; if (!assignedGroups[g]) assignedGroups[g] = [];
         assignedGroups[g].push({ phone: r['전화번호'], name: r['성명'], nickname: r['닉네임'], league: r['소속리그'], group: g, team: r['소속팀'] });
       });
-
       document.getElementById('btnSaveRoster').innerText = '🔄 조편성 수정내역 덮어쓰기';
       alert('대회가 연결되었습니다.\n조편성(1단계)을 수정하거나, 현장매핑(2단계)으로 바로 넘어갈 수 있습니다.');
-      goToStepB(); switchTab('phase1');
+      goToStepB(); switchPhaseTab('phase1');
     }
   }
 }
 
-/* ═══ 조편성 UI ═══ */
 function goToStepB() {
   if (!isEditMode) {
     const pCount = parseInt(document.getElementById('playerCount').value);
-    assignedGroups = {};
-    for (let i = 1; i <= (pCount / 4); i++) assignedGroups[i+'조'] = [];
+    assignedGroups = {}; for (let i = 1; i <= (pCount/4); i++) assignedGroups[i+'조'] = [];
     currentMatchId = Number(document.getElementById('matchDate').value.replace(/-/g, ''));
     currentVenue = document.getElementById('matchVenue').value;
   }
@@ -267,17 +411,16 @@ function goToStepB() {
   document.getElementById('phase1-stepB').classList.remove('hidden');
   renderRoster(); renderGroupBoxes();
 }
-function goToStepA() {
-  document.getElementById('phase1-stepB').classList.add('hidden');
-  document.getElementById('phase1-stepA').classList.remove('hidden');
-}
+function goToStepA() { document.getElementById('phase1-stepB').classList.add('hidden'); document.getElementById('phase1-stepA').classList.remove('hidden'); }
+
 function renderRoster() {
   const container = document.getElementById('rosterList'); container.innerHTML = '';
   const assignedPhones = Object.values(assignedGroups).flat().map(p => p.phone);
-  globalData.members.forEach(m => {
+  /* 활동중 회원만 표시 */
+  globalData.members.filter(m => m['활동상태'] === '활동중').forEach(m => {
     if (!assignedPhones.includes(m['전화번호'])) {
       const el = document.createElement('div'); el.className = 'player-chip';
-      el.innerHTML = `<span>${m['성명']}</span> <span style="font-size:9px;color:#8faa97">${m['소속리그']}</span>`;
+      el.innerHTML = `<span>${m['성명']}</span><span style="font-size:9px;color:#8faa97">${m['소속리그']}</span>`;
       el.onclick = () => assignPlayer(m); container.appendChild(el);
     }
   });
@@ -299,86 +442,50 @@ function renderGroupBoxes() {
 }
 function assignPlayer(m) {
   for (let g in assignedGroups) {
-    if (assignedGroups[g].length < 4) {
-      assignedGroups[g].push({ phone: m['전화번호'], name: m['성명'], nickname: m['닉네임'], league: m['소속리그'], group: g, team: '백팀' });
-      break;
-    }
+    if (assignedGroups[g].length < 4) { assignedGroups[g].push({ phone: m['전화번호'], name: m['성명'], nickname: m['닉네임'], league: m['소속리그'], group: g, team: '백팀' }); break; }
   }
   renderRoster(); renderGroupBoxes();
 }
 function unassignPlayer(g, phone) { assignedGroups[g] = assignedGroups[g].filter(p => p.phone !== phone); renderRoster(); renderGroupBoxes(); }
 function toggleTeam(g, phone) { const p = assignedGroups[g].find(p => p.phone === phone); if(p) p.team = p.team === '백팀' ? '청팀' : '백팀'; renderGroupBoxes(); }
 
-/* ═══════════════════════════════════════════════════
-   [1단계] 명단 확정 — tb_Record + tb_Match_Episodes INSERT
-   ═══════════════════════════════════════════════════ */
 async function submitPhase1() {
   const allPlayers = Object.values(assignedGroups).flat();
   if (allPlayers.length === 0) return alert('조 편성을 진행해 주세요.');
-
   showLoading(isEditMode ? '조편성 수정사항 덮어쓰는 중...' : '새 대회 정보 등록 중...');
   try {
     if (isEditMode) {
-      /* 기존 레코드 삭제 후 재삽입 */
       await sbDelete('tb_Record', `대회번호=eq.${currentMatchId}`);
     } else {
-      /* 중복 대회 체크 */
       const existing = await sbGet('tb_Match_Episodes', `&대회번호=eq.${currentMatchId}&limit=1`);
-      if (existing.length > 0) {
-        hideLoading();
-        return alert('해당 날짜로 이미 생성된 대회가 있습니다. 상단에서 대회를 불러와주세요.');
-      }
+      if (existing.length > 0) { hideLoading(); return alert('해당 날짜로 이미 생성된 대회가 있습니다.'); }
     }
-
-    /* 현재 최대 순번 조회 */
     const maxRes = await sbGet('tb_Record', '&select=순번&order=순번.desc&limit=1');
     const lastSeq = maxRes.length > 0 ? (maxRes[0]['순번'] || 0) : 0;
-
-    /* tb_Record 선수 행 삽입 */
     const recordRows = allPlayers.map((p, idx) => ({
-      순번: lastSeq + idx + 1,
-      대회번호: currentMatchId,
-      구장명: currentVenue,
-      전반코스: '', 후반코스: '',
-      전화번호: p.phone, 성명: p.name, 닉네임: p.nickname || '',
-      조번호: p.group, 소속팀: p.team, 소속리그: p.league,
+      순번: lastSeq + idx + 1, 대회번호: currentMatchId, 구장명: currentVenue, 전반코스: '', 후반코스: '',
+      전화번호: p.phone, 성명: p.name, 닉네임: p.nickname || '', 조번호: p.group, 소속팀: p.team, 소속리그: p.league,
       H1:null,H2:null,H3:null,H4:null,H5:null,H6:null,H7:null,H8:null,H9:null,
       H10:null,H11:null,H12:null,H13:null,H14:null,H15:null,H16:null,H17:null,H18:null,
-      합계: 0, NP_Handicap: 0, Net_Score: 0, Luck_Factor: 0
+      합계:0, NP_Handicap:0, Net_Score:0, Luck_Factor:0
     }));
     await sbPost('tb_Record', recordRows);
-
     if (!isEditMode) {
-      /* tb_Match_Episodes: 해당 구장의 코스별 행 삽입 */
-      const venueCourses = globalData.courses.filter(c => c['구장명'] === currentVenue);
-      const episodeRows = venueCourses.map(c => ({
-        대회번호: currentMatchId,
-        대회명: document.getElementById('matchName').value,
-        날짜: document.getElementById('matchDate').value,
-        구장명: currentVenue,
-        코스: c['코스명'],
-        제외홀: '',
-        완료구분: '진행중'
-      }));
-      await sbPost('tb_Match_Episodes', episodeRows);
+      const venueCourses = globalData.courses.filter(c => c['구장명'] === currentVenue && c['사용여부'] === 'Y');
+      await sbPost('tb_Match_Episodes', venueCourses.map(c => ({
+        대회번호: currentMatchId, 대회명: document.getElementById('matchName').value,
+        날짜: document.getElementById('matchDate').value, 구장명: currentVenue,
+        코스: c['코스명'], 제외홀: '', 완료구분: '진행중'
+      })));
     }
-
-    hideLoading();
-    alert(isEditMode ? '조편성이 성공적으로 수정되었습니다.' : '대회가 성공적으로 생성되었습니다.');
-    await loadAdminInitData();
-    switchTab('phase2');
-  } catch(err) {
-    hideLoading();
-    alert('오류: ' + err.message);
-  }
+    hideLoading(); alert(isEditMode ? '조편성이 수정되었습니다.' : '대회가 생성되었습니다.');
+    await loadAdminInitData(); switchPhaseTab('phase2');
+  } catch(err) { hideLoading(); alert('오류: ' + err.message); }
 }
 
-/* ═══════════════════════════════════════════════════
-   [2단계] 코스 매핑 저장 — tb_Record PATCH
-   ═══════════════════════════════════════════════════ */
 function renderMappingUI() {
   document.getElementById('selectedVenueText').value = currentVenue || '연결된 대회 없음';
-  const venueCourses = globalData.courses.filter(c => c['구장명'] === currentVenue).map(c => c['코스명']);
+  const venueCourses = globalData.courses.filter(c => c['구장명'] === currentVenue && c['사용여부'] === 'Y').map(c => c['코스명']);
   const options = venueCourses.map(c => `<option value="${c}">${c}</option>`).join('');
   let html = '';
   Object.keys(assignedGroups).forEach(g => {
@@ -393,35 +500,21 @@ function renderMappingUI() {
 async function submitPhase2() {
   showLoading('코스 매핑 저장 중...');
   try {
-    await Promise.all(Object.keys(assignedGroups).map(g => {
-      const front = document.getElementById('front_'+g).value;
-      const back  = document.getElementById('back_'+g).value;
-      return sbPatch('tb_Record',
-        `대회번호=eq.${currentMatchId}&조번호=eq.${encodeURIComponent(g)}`,
-        { 전반코스: front, 후반코스: back }
-      );
-    }));
-    hideLoading();
-    alert('코스 매핑이 저장되었습니다. (제외홀은 3단계에서 추첨합니다)');
-    switchTab('phase3');
-  } catch(err) {
-    hideLoading();
-    alert('오류: ' + err.message);
-  }
+    await Promise.all(Object.keys(assignedGroups).map(g =>
+      sbPatch('tb_Record', `대회번호=eq.${currentMatchId}&조번호=eq.${encodeURIComponent(g)}`,
+        { 전반코스: document.getElementById('front_'+g).value, 후반코스: document.getElementById('back_'+g).value })
+    ));
+    hideLoading(); alert('코스 매핑이 저장되었습니다.'); switchPhaseTab('phase3');
+  } catch(err) { hideLoading(); alert('오류: ' + err.message); }
 }
 
-/* ═══ 스코어 미리보기 ═══ */
 function previewScores() {
   try {
     const data = JSON.parse(document.getElementById('jsonInput').value);
     const tbody = document.getElementById('previewBody'); tbody.innerHTML = '';
     data.forEach(p => {
       let rowHtml = `<tr><td style="text-align:left;color:#e8d5a3">${p.name}</td>`;
-      p.scores.forEach(s => {
-        let cls = 'score-par', text = '0';
-        if (s < 0) { cls = 'score-under'; text = s; } else if (s > 0) { cls = 'score-over'; text = '+' + s; }
-        rowHtml += `<td class="${cls}">${text}</td>`;
-      });
+      p.scores.forEach(s => { let cls='score-par',text='0'; if(s<0){cls='score-under';text=s;}else if(s>0){cls='score-over';text='+'+s;} rowHtml+=`<td class="${cls}">${text}</td>`; });
       rowHtml += `</tr>`; tbody.innerHTML += rowHtml;
     });
     document.getElementById('previewArea').classList.remove('hidden');
@@ -430,170 +523,317 @@ function previewScores() {
   } catch(e) { alert('JSON 형식이 올바르지 않습니다.'); }
 }
 
-/* ═══════════════════════════════════════════════════
-   [3단계] 스코어 저장 — tb_Record H1~H18 PATCH
-   ═══════════════════════════════════════════════════ */
 async function submitPhase3(isFinal) {
   if (!currentMatchId) return alert('상단에서 대회를 선택하세요.');
-  const confirmMsg = isFinal
-    ? '정말 대회를 최종 마감하시겠습니까? 마감 시 목록에서 사라집니다.'
-    : '점수를 임시 저장합니다. (정산은 제외홀 추첨 시 실행됩니다)';
-  if (!confirm(confirmMsg)) return;
-
-  let jsonScores;
-  try { jsonScores = JSON.parse(document.getElementById('jsonInput').value); }
-  catch(e) { return alert('JSON 형식이 올바르지 않습니다.'); }
-
+  if (!confirm(isFinal ? '정말 대회를 최종 마감하시겠습니까?' : '점수를 임시 저장합니다.')) return;
+  let jsonScores; try { jsonScores = JSON.parse(document.getElementById('jsonInput').value); } catch(e) { return alert('JSON 형식 오류'); }
   showLoading('스코어 저장 중...');
   try {
-    /* 현재 대회 레코드를 가져와서 이름으로 매칭 후 전화번호로 패치 */
     const matchRecords = await sbGet('tb_Record', `&대회번호=eq.${currentMatchId}`);
-
     await Promise.all(jsonScores.map(ps => {
       if (!ps.scores || ps.scores.length !== 18) return Promise.resolve();
-      const rec = matchRecords.find(r => r['성명'] === ps.name);
-      if (!rec) return Promise.resolve();
-      const updateData = {};
-      ps.scores.forEach((s, i) => { updateData[`H${i+1}`] = s; });
-      return sbPatch('tb_Record',
-        `대회번호=eq.${currentMatchId}&전화번호=eq.${encodeURIComponent(rec['전화번호'])}`,
-        updateData
-      );
+      const rec = matchRecords.find(r => r['성명'] === ps.name); if (!rec) return Promise.resolve();
+      const upd = {}; ps.scores.forEach((s, i) => { upd[`H${i+1}`] = s; });
+      return sbPatch('tb_Record', `대회번호=eq.${currentMatchId}&전화번호=eq.${encodeURIComponent(rec['전화번호'])}`, upd);
     }));
-
     if (isFinal) {
       const cnt = await runNPCalculation();
       await sbPatch('tb_Match_Episodes', `대회번호=eq.${currentMatchId}`, { 완료구분: '완료' });
-      hideLoading();
-      alert(`스코어 정산(${cnt}건) 및 대회 마감 처리가 완료되었습니다.`);
+      hideLoading(); alert(`스코어 정산(${cnt}건) 및 대회 마감 처리가 완료되었습니다.`);
       document.getElementById('jsonInput').value = '';
       document.getElementById('previewArea').classList.add('hidden');
       document.getElementById('actionButtons').classList.add('hidden');
-      await loadAdminInitData();
-      switchTab('phase1');
+      await loadAdminInitData(); switchPhaseTab('phase1');
     } else {
-      hideLoading();
-      alert(`${jsonScores.length}명의 스코어가 임시저장되었습니다. (정산은 제외홀 추첨 시 실행됩니다)`);
+      hideLoading(); alert(`${jsonScores.length}명의 스코어가 임시저장되었습니다.`);
       document.getElementById('jsonInput').value = '';
       document.getElementById('previewArea').classList.add('hidden');
     }
-  } catch(err) {
-    hideLoading();
-    alert('오류: ' + err.message);
-  }
+  } catch(err) { hideLoading(); alert('오류: ' + err.message); }
 }
 
-/* ═══════════════════════════════════════════════════
-   [3단계] 제외홀 추첨 & 신페리오 정산
-   ═══════════════════════════════════════════════════ */
 async function drawExcludeHoles() {
   if (!currentMatchId) return alert('상단에서 대회를 선택하세요.');
-  if (!confirm('제외홀을 무작위 추첨하고 신페리오 정산을 실행합니다.\n\n⚠️ 기존 추첨 결과가 있으면 덮어쓰기됩니다.\n계속하시겠습니까?')) return;
-
+  if (!confirm('제외홀을 무작위 추첨하고 신페리오 정산을 실행합니다.\n계속하시겠습니까?')) return;
   showLoading('🎲 제외홀 추첨 및 정산 중...');
   try {
     const episodes = globalData.matchEpisodes.filter(m => m['대회번호'] === currentMatchId);
     const drawnResults = [];
-
-    /* 코스별 제외홀 추첨 + 저장 */
     await Promise.all(episodes.map(ep => {
-      const courseMaster = globalData.courses.find(c => c['구장명'] === currentVenue && c['코스명'] === ep['코스']);
-      if (!courseMaster) return Promise.resolve();
-
-      const p3 = [], p4 = [], p5 = [];
-      courseMaster.P.forEach((par, idx) => {
-        if (par === 3) p3.push(idx + 1);
-        else if (par === 4) p4.push(idx + 1);
-        else if (par === 5) p5.push(idx + 1);
-      });
-      const excludeHoles = [
-        p3.length ? p3[Math.floor(Math.random() * p3.length)] : null,
-        p4.length ? p4[Math.floor(Math.random() * p4.length)] : null,
-        p5.length ? p5[Math.floor(Math.random() * p5.length)] : null
-      ].filter(Boolean).join(',');
-
-      drawnResults.push({ 코스: ep['코스'], 제외홀: excludeHoles });
-
-      /* globalData 업데이트 (NP 계산에서 바로 사용하기 위해) */
-      ep['제외홀'] = excludeHoles;
-
-      return sbPatch('tb_Match_Episodes',
-        `대회번호=eq.${currentMatchId}&코스=eq.${encodeURIComponent(ep['코스'])}`,
-        { 제외홀: excludeHoles }
-      );
+      const cm = globalData.courses.find(c => c['구장명'] === currentVenue && c['코스명'] === ep['코스']); if (!cm) return Promise.resolve();
+      const p3=[],p4=[],p5=[]; cm.P.forEach((par,idx)=>{ if(par===3)p3.push(idx+1); else if(par===4)p4.push(idx+1); else if(par===5)p5.push(idx+1); });
+      const ex = [p3.length?p3[Math.floor(Math.random()*p3.length)]:null, p4.length?p4[Math.floor(Math.random()*p4.length)]:null, p5.length?p5[Math.floor(Math.random()*p5.length)]:null].filter(Boolean).join(',');
+      drawnResults.push({ 코스: ep['코스'], 제외홀: ex }); ep['제외홀'] = ex;
+      return sbPatch('tb_Match_Episodes', `대회번호=eq.${currentMatchId}&코스=eq.${encodeURIComponent(ep['코스'])}`, { 제외홀: ex });
     }));
-
-    /* 신페리오 정산 실행 */
     const cnt = await runNPCalculation();
-
-    const drawnMsg = drawnResults.map(r => `  ${r.코스}: [${r.제외홀}]홀 제외`).join('\n');
-    hideLoading();
-    alert(`🎲 ${drawnResults.length}개 코스 제외홀 추첨 완료!\n${cnt}건 정산 완료\n\n추첨 결과:\n${drawnMsg}`);
-  } catch(err) {
-    hideLoading();
-    alert('오류: ' + err.message);
-  }
+    hideLoading(); alert(`🎲 ${drawnResults.length}개 코스 추첨 완료!\n${cnt}건 정산 완료\n\n${drawnResults.map(r=>`  ${r.코스}: [${r.제외홀}]홀 제외`).join('\n')}`);
+  } catch(err) { hideLoading(); alert('오류: ' + err.message); }
 }
 
-/* ═══════════════════════════════════════════════════
-   신페리오(NP) 정산 엔진 (Code.gs 로직을 JS로 이전)
-   ═══════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════
+   👤 회원관리
+   ════════════════════════════════════════════════════ */
+function setMemberFilter(filter) {
+  memberFilter = filter;
+  document.getElementById('mf-active').classList.toggle('active', filter === '활동중');
+  document.getElementById('mf-all').classList.toggle('active', filter === '전체');
+  renderMemberList();
+}
+
+function renderMemberList() {
+  const list = document.getElementById('memberList'); list.innerHTML = '';
+  const members = memberFilter === '활동중'
+    ? globalData.members.filter(m => m['활동상태'] === '활동중')
+    : globalData.members;
+  if (members.length === 0) { list.innerHTML = `<div style="text-align:center;padding:20px;color:#6b8f77;">회원이 없습니다.</div>`; return; }
+  members.forEach(m => {
+    const isActive = m['활동상태'] === '활동중';
+    const tagClass = isActive ? 'tag-active' : 'tag-inactive';
+    const tagText  = isActive ? '활동중' : '중지';
+    const div = document.createElement('div'); div.className = 'mgmt-row';
+    div.innerHTML = `
+      <div class="mgmt-row-info">
+        <div class="name">${m['성명']} ${m['닉네임'] ? '<span style="color:#8faa97;font-size:11px;">('+m['닉네임']+')</span>' : ''}</div>
+        <div class="sub">${m['소속리그']} · ${m['등급'] || '-'} · ${m['전화번호']}</div>
+      </div>
+      <div class="mgmt-row-actions">
+        <span class="status-tag ${tagClass}">${tagText}</span>
+        <button class="btn-sm" onclick="openEditMember('${m['전화번호']}')">수정</button>
+        <button class="btn-sm ${isActive ? 'danger' : 'success'}" onclick="toggleMemberStatus('${m['전화번호']}','${m['활동상태']}')">
+          ${isActive ? '중지' : '복귀'}
+        </button>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+function toggleNewMemberForm(show) {
+  document.getElementById('newMemberForm').classList.toggle('hidden', !show);
+  if (show) { document.getElementById('editMemberForm').classList.add('hidden'); }
+}
+function toggleEditMemberForm(show) {
+  document.getElementById('editMemberForm').classList.toggle('hidden', !show);
+}
+
+function openEditMember(phone) {
+  const m = globalData.members.find(x => x['전화번호'] === phone); if (!m) return;
+  document.getElementById('em_phone').value   = m['전화번호'];
+  document.getElementById('em_name').value    = m['성명'];
+  document.getElementById('em_nick').value    = m['닉네임'] || '';
+  document.getElementById('em_league').value  = m['소속리그'] || '1부';
+  document.getElementById('em_grade').value   = m['등급'] || '선수';
+  document.getElementById('editMemberForm').classList.remove('hidden');
+  document.getElementById('newMemberForm').classList.add('hidden');
+  document.getElementById('editMemberForm').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function submitNewMember() {
+  const name  = document.getElementById('nm_name').value.trim();
+  const phone = document.getElementById('nm_phone').value.trim();
+  if (!name || !phone) return alert('성명과 전화번호는 필수입니다.');
+  const dup = globalData.members.find(m => m['전화번호'] === phone);
+  if (dup) return alert('이미 등록된 전화번호입니다.');
+  showLoading('회원 등록 중...');
+  try {
+    const maxRes = await sbGet('tb_member', '&select=순번&order=순번.desc&limit=1');
+    const lastSeq = maxRes.length > 0 ? (maxRes[0]['순번'] || 0) : 0;
+    await sbPost('tb_member', [{
+      순번: lastSeq + 1, 전화번호: phone, 성명: name,
+      닉네임: document.getElementById('nm_nick').value.trim() || null,
+      소속리그: document.getElementById('nm_league').value,
+      등급: document.getElementById('nm_grade').value,
+      활동상태: '활동중'
+    }]);
+    hideLoading(); alert(`${name} 회원이 등록되었습니다.`);
+    toggleNewMemberForm(false);
+    ['nm_name','nm_nick'].forEach(id => document.getElementById(id).value = '');
+    await loadAdminInitData(); renderMemberList();
+  } catch(err) { hideLoading(); alert('오류: ' + err.message); }
+}
+
+async function submitEditMember() {
+  const phone = document.getElementById('em_phone').value;
+  showLoading('수정 중...');
+  try {
+    await sbPatch('tb_member', `전화번호=eq.${encodeURIComponent(phone)}`, {
+      닉네임: document.getElementById('em_nick').value.trim() || null,
+      소속리그: document.getElementById('em_league').value,
+      등급: document.getElementById('em_grade').value
+    });
+    hideLoading(); alert('수정되었습니다.');
+    toggleEditMemberForm(false);
+    await loadAdminInitData(); renderMemberList();
+  } catch(err) { hideLoading(); alert('오류: ' + err.message); }
+}
+
+async function toggleMemberStatus(phone, currentStatus) {
+  const next = currentStatus === '활동중' ? '중지' : '활동중';
+  const m = globalData.members.find(x => x['전화번호'] === phone);
+  if (!confirm(`${m ? m['성명'] : phone} 회원을 [${next}] 상태로 변경하시겠습니까?`)) return;
+  showLoading('상태 변경 중...');
+  try {
+    await sbPatch('tb_member', `전화번호=eq.${encodeURIComponent(phone)}`, { 활동상태: next });
+    hideLoading(); await loadAdminInitData(); renderMemberList();
+  } catch(err) { hideLoading(); alert('오류: ' + err.message); }
+}
+
+/* ════════════════════════════════════════════════════
+   ⛳ 코스관리
+   ════════════════════════════════════════════════════ */
+function renderCourseList() {
+  const list = document.getElementById('courseList'); list.innerHTML = '';
+  const venues = [...new Set(globalData.courses.map(c => c['구장명']))];
+  if (venues.length === 0) { list.innerHTML = `<div style="text-align:center;padding:20px;color:#6b8f77;">등록된 코스가 없습니다.</div>`; return; }
+  venues.forEach(venue => {
+    const venCourses = globalData.courses.filter(c => c['구장명'] === venue);
+    let html = `<div class="section-divider">🏌️ ${venue}</div>`;
+    venCourses.forEach(c => {
+      const isUse = c['사용여부'] === 'Y';
+      const tagClass = isUse ? 'tag-yes' : 'tag-no';
+      const pars = `${c.P1}-${c.P2}-${c.P3}-${c.P4}-${c.P5}-${c.P6}-${c.P7}-${c.P8}-${c.P9}`;
+      html += `<div class="mgmt-row">
+        <div class="mgmt-row-info">
+          <div class="name">${c['코스명']}</div>
+          <div class="sub">${pars} (합계 ${c.P.reduce((a,b)=>a+b,0)})</div>
+        </div>
+        <div class="mgmt-row-actions">
+          <span class="status-tag ${tagClass}">${isUse ? '사용중' : '중지'}</span>
+          <button class="btn-sm ${isUse ? 'danger' : 'success'}" onclick="toggleCourseStatus('${venue}','${c['코스명']}','${c['사용여부']}')">
+            ${isUse ? '중지' : '활성화'}
+          </button>
+        </div>
+      </div>`;
+    });
+    list.innerHTML += html;
+  });
+}
+
+function toggleNewCourseForm(show) {
+  document.getElementById('newCourseForm').classList.toggle('hidden', !show);
+}
+
+async function submitNewCourse() {
+  const venue  = document.getElementById('nc_venue').value.trim();
+  const course = document.getElementById('nc_course').value.trim();
+  if (!venue || !course) return alert('구장명과 코스명은 필수입니다.');
+  const dup = globalData.courses.find(c => c['구장명'] === venue && c['코스명'] === course);
+  if (dup) return alert('이미 등록된 구장+코스 조합입니다.');
+  const pars = [1,2,3,4,5,6,7,8,9].map(i => Number(document.getElementById('nc_p'+i).value));
+  showLoading('코스 등록 중...');
+  try {
+    await sbPost('tb_Course', [{ 구장명: venue, 코스명: course, P1:pars[0],P2:pars[1],P3:pars[2],P4:pars[3],P5:pars[4],P6:pars[5],P7:pars[6],P8:pars[7],P9:pars[8], 사용여부:'Y' }]);
+    hideLoading(); alert(`${venue} ${course}이(가) 등록되었습니다.`);
+    toggleNewCourseForm(false);
+    document.getElementById('nc_venue').value = ''; document.getElementById('nc_course').value = '';
+    await loadAdminInitData(); renderCourseList();
+  } catch(err) { hideLoading(); alert('오류: ' + err.message); }
+}
+
+async function toggleCourseStatus(venue, course, currentStatus) {
+  const next = currentStatus === 'Y' ? 'N' : 'Y';
+  const label = next === 'Y' ? '활성화' : '사용중지';
+  if (!confirm(`[${venue} ${course}] 코스를 ${label}하시겠습니까?`)) return;
+  showLoading('상태 변경 중...');
+  try {
+    await sbPatch('tb_Course', `구장명=eq.${encodeURIComponent(venue)}&코스명=eq.${encodeURIComponent(course)}`, { 사용여부: next });
+    hideLoading(); await loadAdminInitData(); renderCourseList();
+  } catch(err) { hideLoading(); alert('오류: ' + err.message); }
+}
+
+/* ════════════════════════════════════════════════════
+   🏆 시즌관리
+   ════════════════════════════════════════════════════ */
+function renderSeasonList() {
+  const list = document.getElementById('seasonList'); list.innerHTML = '';
+  if (globalData.seasons.length === 0) { list.innerHTML = `<div style="text-align:center;padding:20px;color:#6b8f77;">등록된 시즌이 없습니다.</div>`; return; }
+  [...globalData.seasons].reverse().forEach(s => {
+    const isActive = s['진행상태'] === '진행중';
+    list.innerHTML += `<div class="season-row ${isActive ? 'active' : ''}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-size:14px;font-weight:800;color:${isActive?'#e8d5a3':'#8faa97'}">${s['시즌명']}</span>
+        <span class="status-tag ${isActive?'tag-active':'tag-inactive'}">${s['진행상태']}</span>
+      </div>
+      <div style="font-size:11px;color:#6b8f77;margin-bottom:${isActive?'10px':'0'};">
+        ID: ${s['시즌ID']} &nbsp;|&nbsp; 시작: ${s['시작_대회번호']} &nbsp;|&nbsp; 종료: ${s['종료_대회번호'] || '-'}
+      </div>
+      ${isActive ? `
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+        <input type="date" id="end_date_${s['시즌ID']}" class="form-input" style="flex:1;padding:8px;">
+        <button class="btn-sm warning" onclick="endSeason('${s['시즌ID']}')">시즌 종료</button>
+      </div>` : ''}
+    </div>`;
+  });
+}
+
+function toggleNewSeasonForm(show) {
+  document.getElementById('newSeasonForm').classList.toggle('hidden', !show);
+}
+
+async function submitNewSeason() {
+  const id    = document.getElementById('ns_id').value.trim();
+  const name  = document.getElementById('ns_name').value.trim();
+  const start = document.getElementById('ns_start').value;
+  if (!id || !name || !start) return alert('모든 항목을 입력해주세요.');
+  if (globalData.seasons.find(s => s['시즌ID'] === id)) return alert('이미 존재하는 시즌 ID입니다.');
+  if (!confirm(`[${name}] 시즌을 생성하시겠습니까?\n현재 진행중인 시즌은 자동으로 종료되지 않습니다.\n먼저 기존 시즌을 종료해 주세요.`)) return;
+  showLoading('시즌 생성 중...');
+  try {
+    await sbPost('tb_Season', [{ 시즌ID: id, 시즌명: name, 시작_대회번호: Number(start.replace(/-/g,'')), 종료_대회번호: null, 진행상태: '진행중' }]);
+    hideLoading(); alert(`[${name}] 시즌이 생성되었습니다.`);
+    toggleNewSeasonForm(false);
+    ['ns_id','ns_name','ns_start'].forEach(i => document.getElementById(i).value = '');
+    await loadAdminInitData(); renderSeasonList();
+  } catch(err) { hideLoading(); alert('오류: ' + err.message); }
+}
+
+async function endSeason(seasonId) {
+  const dateInput = document.getElementById('end_date_' + seasonId);
+  if (!dateInput || !dateInput.value) return alert('종료 대회 날짜를 선택해주세요.');
+  const s = globalData.seasons.find(x => x['시즌ID'] === seasonId);
+  if (!confirm(`[${s ? s['시즌명'] : seasonId}] 시즌을 종료하시겠습니까?\n종료 대회번호: ${dateInput.value.replace(/-/g,'')}`)) return;
+  showLoading('시즌 종료 처리 중...');
+  try {
+    await sbPatch('tb_Season', `시즌ID=eq.${encodeURIComponent(seasonId)}`, {
+      종료_대회번호: Number(dateInput.value.replace(/-/g,'')), 진행상태: '종료'
+    });
+    hideLoading(); alert('시즌이 종료되었습니다.\n승강제 처리는 회원관리 탭에서 소속리그를 수정해주세요.');
+    await loadAdminInitData(); renderSeasonList();
+  } catch(err) { hideLoading(); alert('오류: ' + err.message); }
+}
+
+/* ════════════════════════════════════════════════════
+   신페리오(NP) 정산 엔진
+   ════════════════════════════════════════════════════ */
 async function runNPCalculation() {
-  /* 최신 레코드 + 에피소드 조회 */
   const [records, episodes] = await Promise.all([
     sbGet('tb_Record', `&대회번호=eq.${currentMatchId}`),
     sbGet('tb_Match_Episodes', `&대회번호=eq.${currentMatchId}`)
   ]);
-
   let updatedCount = 0;
-
   await Promise.all(records.map(r => {
-    if (r.H1 === null) return Promise.resolve(); // 스코어 미입력 행 스킵
-
-    const scores = [r.H1,r.H2,r.H3,r.H4,r.H5,r.H6,r.H7,r.H8,r.H9,
-                    r.H10,r.H11,r.H12,r.H13,r.H14,r.H15,r.H16,r.H17,r.H18];
-
-    const frontEp = episodes.find(e => e['코스'] === r['전반코스']);
-    const backEp  = episodes.find(e => e['코스'] === r['후반코스']);
-    if (!frontEp || !backEp) return Promise.resolve();
-
-    const frontExclude = frontEp['제외홀'] ? frontEp['제외홀'].split(',').map(Number).filter(n => !isNaN(n)) : [];
-    const backExclude  = backEp['제외홀']  ? backEp['제외홀'].split(',').map(Number).filter(n => !isNaN(n))  : [];
-
-    const frontCourse = globalData.courses.find(c => c['구장명'] === r['구장명'] && c['코스명'] === r['전반코스']);
-    const backCourse  = globalData.courses.find(c => c['구장명'] === r['구장명'] && c['코스명'] === r['후반코스']);
-    if (!frontCourse || !backCourse) return Promise.resolve();
-
-    const pars = [...frontCourse.P, ...backCourse.P];
-    let overParSelected = 0, totalOverPar = 0;
-
-    for (let h = 0; h < 9; h++) {
-      const over = Math.max(0, scores[h]);
-      totalOverPar += over;
-      if (!frontExclude.includes(h + 1)) overParSelected += over;
-    }
-    for (let h = 0; h < 9; h++) {
-      const over = Math.max(0, scores[h + 9]);
-      totalOverPar += over;
-      if (!backExclude.includes(h + 1)) overParSelected += over;
-    }
-
-    /* NP 핸디캡 = (12홀 오버파 합 × 1.5) × 0.8, 소수점 첫째자리 반올림 */
-    const npHandicap   = Math.round(overParSelected * 1.5 * 0.8);
-    const totalPar     = pars.reduce((a, b) => a + b, 0);
-    const total        = scores.reduce((a, b) => a + b, 0);
-    const grossScore   = totalPar + total;
-    const netScore     = grossScore - npHandicap;
-    const expectedHdcp = totalOverPar * 0.8;
-    const luckFactor   = Math.round((npHandicap - expectedHdcp) * 10) / 10;
-
+    if (r.H1 === null) return Promise.resolve();
+    const scores = [r.H1,r.H2,r.H3,r.H4,r.H5,r.H6,r.H7,r.H8,r.H9,r.H10,r.H11,r.H12,r.H13,r.H14,r.H15,r.H16,r.H17,r.H18];
+    const fe = episodes.find(e => e['코스'] === r['전반코스']);
+    const be = episodes.find(e => e['코스'] === r['후반코스']);
+    if (!fe || !be) return Promise.resolve();
+    const fx = fe['제외홀'] ? fe['제외홀'].split(',').map(Number).filter(n=>!isNaN(n)) : [];
+    const bx = be['제외홀'] ? be['제외홀'].split(',').map(Number).filter(n=>!isNaN(n)) : [];
+    const fc = globalData.courses.find(c => c['구장명'] === r['구장명'] && c['코스명'] === r['전반코스']);
+    const bc = globalData.courses.find(c => c['구장명'] === r['구장명'] && c['코스명'] === r['후반코스']);
+    if (!fc || !bc) return Promise.resolve();
+    const pars = [...fc.P, ...bc.P];
+    let sel=0, tot=0;
+    for(let h=0;h<9;h++){const o=Math.max(0,scores[h]);tot+=o;if(!fx.includes(h+1))sel+=o;}
+    for(let h=0;h<9;h++){const o=Math.max(0,scores[h+9]);tot+=o;if(!bx.includes(h+1))sel+=o;}
+    const np   = Math.round(sel*1.5*0.8);
+    const gros = pars.reduce((a,b)=>a+b,0) + scores.reduce((a,b)=>a+b,0);
+    const net  = gros - np;
+    const luck = Math.round((np - tot*0.8)*10)/10;
     updatedCount++;
-    return sbPatch('tb_Record',
-      `대회번호=eq.${currentMatchId}&전화번호=eq.${encodeURIComponent(r['전화번호'])}`,
-      { 합계: grossScore, NP_Handicap: npHandicap, Net_Score: netScore, Luck_Factor: luckFactor }
-    );
+    return sbPatch('tb_Record', `대회번호=eq.${currentMatchId}&전화번호=eq.${encodeURIComponent(r['전화번호'])}`,
+      { 합계:gros, NP_Handicap:np, Net_Score:net, Luck_Factor:luck });
   }));
-
   return updatedCount;
 }
 </script>
