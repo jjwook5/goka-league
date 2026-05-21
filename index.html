@@ -104,6 +104,14 @@
   .s-par { background: #1e3a2a; color: #d4e4da; }  
   .s-bogey { background: #713f12; color: #fef08a; }
   .s-double { background: #7f1d1d; color: #fecaca; }
+  /* 파 기호 행 */
+  .s-sym-row { display: flex; align-items: center; background: transparent; padding: 0 4px; margin-bottom: 1px; }
+  .s-sym-cells { display: flex; flex: 1; justify-content: space-between; padding: 0 4px; }
+  .s-sym-cell { width: 22px; height: 14px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; }
+  .sym-p3 { color: #60a5fa; }   /* 파3: 파란 점 */
+  .sym-p5 { color: #fb923c; }   /* 파5: 주황 대시 */
+  /* 코스명 소헤더 */
+  .s-course-lbl { font-size: 10px; font-weight: 700; color: #5a7f6a; padding: 6px 4px 2px; letter-spacing: 0.5px; }
   
   /* ═══ [신규] SVG 그래프 영역 ═══ */
   .trend-chart { background: #0d1f15; border: 1px solid #1e3a2a; border-radius: 10px; padding: 12px; margin-bottom: 16px; }
@@ -262,7 +270,9 @@ function renderStandings() {
    ═══════════════════════════════════════════════════ */
 function renderResults() {
   const el = document.getElementById('tab-results');
-  const uniqueMatches = [...new Map(DATA.matches.map(m => [m['대회번호'], m])).values()].reverse();
+  /* 마감·완료 대회만 표시 (진행중은 숨김) */
+  const visibleMatches = DATA.matches.filter(m => m['완료구분'] === '마감' || m['완료구분'] === '완료');
+  const uniqueMatches = [...new Map(visibleMatches.map(m => [m['대회번호'], m])).values()].reverse();
   if(!currentMatchId && uniqueMatches.length > 0) currentMatchId = uniqueMatches[0]['대회번호'];
   
   let recs = DATA.records.filter(r => r['대회번호'] === currentMatchId && r['합계'] > 0);
@@ -313,33 +323,44 @@ function renderResults() {
   
   /* ─── 신페리오 풀포맷 ─── */
   if(currentResultSubTab === 'np') {
-    html += `<div class="np-table-wrapper">
-      <table class="np-grid-table">
-        <thead>
-          <tr>
-            <th style="text-align:left; padding-left:8px; width:70px;">선수(리그)</th>
-            <th style="width:50px;">합산</th>
-            <th>Net</th>
-            <th>HDCP</th>
-            <th>Luck</th>
-          </tr>
-        </thead>
-        <tbody>`;
-        
-    recs.forEach(r => {
-      let lf = Number(r['Luck_Factor']) || 0;
-      let luckColor = lf > 0 ? '#22c55e' : lf < 0 ? '#ef4444' : '#b4c9bb';
-      let luckSign = lf > 0 ? '+' : '';
-      
-      html += `<tr>
-        <td class="np-name-td" onclick="openPlayerProfile('${r['전화번호']}')">${esc(r.성명)}<span style="display:block; font-size:9px; color:#5a7f6a; font-weight:normal;">${r['소속리그']}</span></td>
-        <td>${r['합계']}</td>
-        <td class="np-bold-td">${numFmt(r['Net_Score'])}</td>
-        <td>${numFmt(r['합계'] - r['Net_Score'])}</td>
-        <td style="color:${luckColor}; font-weight:700;">${luckSign}${numFmt(lf)}</td>
-      </tr>`;
-    });
-    html += `</tbody></table></div>`;
+    /* 선택된 대회의 완료구분 확인 */
+    const curEp = DATA.matches.find(m => m['대회번호'] === currentMatchId);
+    const isPublished = curEp && curEp['완료구분'] === '완료';
+
+    if(!isPublished) {
+      /* 마감 상태: 신페리오 잠금 */
+      html += `<div style="text-align:center;padding:32px 16px;">
+        <div style="font-size:32px;margin-bottom:12px;">🔒</div>
+        <div style="font-size:14px;font-weight:800;color:#e8d5a3;margin-bottom:8px;">신페리오 정산 집계 중</div>
+        <div style="font-size:12px;color:#6b8f77;line-height:1.7;">시상 후 결과가 공개됩니다.<br>조금만 기다려 주세요!</div>
+      </div>`;
+    } else {
+      html += `<div class="np-table-wrapper">
+        <table class="np-grid-table">
+          <thead>
+            <tr>
+              <th style="text-align:left; padding-left:8px; width:70px;">선수(리그)</th>
+              <th style="width:50px;">합산</th>
+              <th>Net</th>
+              <th>HDCP</th>
+              <th>Luck</th>
+            </tr>
+          </thead>
+          <tbody>`;
+      recs.forEach(r => {
+        let lf = Number(r['Luck_Factor']) || 0;
+        let luckColor = lf > 0 ? '#22c55e' : lf < 0 ? '#ef4444' : '#b4c9bb';
+        let luckSign = lf > 0 ? '+' : '';
+        html += `<tr>
+          <td class="np-name-td" onclick="openPlayerProfile('${r['전화번호']}')">${esc(r.성명)}<span style="display:block; font-size:9px; color:#5a7f6a; font-weight:normal;">${r['소속리그']}</span></td>
+          <td>${r['합계']}</td>
+          <td class="np-bold-td">${numFmt(r['Net_Score'])}</td>
+          <td>${numFmt(r['합계'] - r['Net_Score'])}</td>
+          <td style="color:${luckColor}; font-weight:700;">${luckSign}${numFmt(lf)}</td>
+        </tr>`;
+      });
+      html += `</tbody></table></div>`;
+    }
   }
   /* ─── 스트로크 ─── */
   else if(currentResultSubTab === 'str') {
@@ -456,32 +477,48 @@ function renderProfile() {
     
     html += `<h3 style="color:#8faa97;font-size:13px;margin-bottom:10px;">대회별 홀별 기록</h3>`;
     
-    /* ★ [개선2] 홀별 스코어를 오버파 원본 숫자(0, -1, +1 등)로 표기 */
+    /* ★ [개선2] 홀별 스코어 — 파기호 + 오버파 표기 */
+    /* 파기호: 파3=● (파란), 파4=공백, 파5=— (주황) */
+    function parSym(p) {
+      if(p===3) return `<div class="s-sym-cell sym-p3">●</div>`;
+      if(p===5) return `<div class="s-sym-cell sym-p5">—</div>`;
+      return `<div class="s-sym-cell"></div>`;
+    }
+
     [...recs].reverse().forEach(r => {
       const match = DATA.matches.find(x => x['대회번호'] === r['대회번호']);
-      
-      let htmlF = '', htmlB = '', overF = 0, overB = 0, totF = 0, totB = 0;
+
+      let htmlF='', htmlB='', symF='', symB='', overF=0, overB=0, totF=0, totB=0;
       const c1 = DATA.courses.find(c => c['구장명']===r['구장명'] && c['코스명']===r['전반코스']);
       const c2 = DATA.courses.find(c => c['구장명']===r['구장명'] && c['코스명']===r['후반코스']);
       const pars = (c1 && c2) ? [...c1.P, ...c2.P] : Array(18).fill(4);
-      
+
       for(let h=0; h<9; h++) {
         let s = Number(r.scores[h]); overF += s; totF += (pars[h]+s);
         let cls = s<0?'s-under':s===0?'s-par':s===1?'s-bogey':'s-double';
-        let display = s === 0 ? '0' : (s > 0 ? '+'+s : String(s));
+        let display = s===0 ? '0' : (s>0 ? '+'+s : String(s));
         htmlF += `<div class="s-cell ${cls}">${display}</div>`;
+        symF  += parSym(pars[h]);
       }
       for(let h=9; h<18; h++) {
         let s = Number(r.scores[h]); overB += s; totB += (pars[h]+s);
         let cls = s<0?'s-under':s===0?'s-par':s===1?'s-bogey':'s-double';
-        let display = s === 0 ? '0' : (s > 0 ? '+'+s : String(s));
+        let display = s===0 ? '0' : (s>0 ? '+'+s : String(s));
         htmlB += `<div class="s-cell ${cls}">${display}</div>`;
+        symB  += parSym(pars[h]);
       }
-      
+
+      const frontLabel = (c1 ? `${r['구장명']} · ${r['전반코스']}` : 'OUT');
+      const backLabel  = (c2 ? `${r['구장명']} · ${r['후반코스']}` : 'IN');
+
       html += `<div class="match-detail">
         <div class="match-detail-head"><span style="color:#e8d5a3;font-weight:700;">${match?match['대회명']:'-'}</span><span style="color:#8faa97;font-size:11px">${match?match['날짜']:''}</span></div>
         <div class="score-2row">
+          <div class="s-course-lbl">${frontLabel}</div>
+          <div class="s-sym-row"><div class="s-label"></div><div class="s-sym-cells">${symF}</div><div class="s-summary"></div></div>
           <div class="s-row"><div class="s-label">OUT</div><div class="s-cells">${htmlF}</div><div class="s-summary">${totF}(${overF>0?'+'+overF:overF})</div></div>
+          <div class="s-course-lbl" style="margin-top:6px;">${backLabel}</div>
+          <div class="s-sym-row"><div class="s-label"></div><div class="s-sym-cells">${symB}</div><div class="s-summary"></div></div>
           <div class="s-row"><div class="s-label">IN</div><div class="s-cells">${htmlB}</div><div class="s-summary">${totB}(${overB>0?'+'+overB:overB})</div></div>
         </div>
         <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11.5px;color:#8faa97;border-top:1px dashed #1e3a2a;padding-top:6px;">

@@ -94,7 +94,7 @@
   <button class="phase-btn active" id="btn-tab-phase1" onclick="switchPhaseTab('phase1')">1. 세팅&수정</button>
   <button class="phase-btn"        id="btn-tab-phase2" onclick="switchPhaseTab('phase2')">2. 현장 매핑</button>
   <button class="phase-btn"        id="btn-tab-phase3" onclick="switchPhaseTab('phase3')">3. 스코어 입력</button>
-  <button class="phase-btn"        id="btn-tab-phase4" onclick="switchPhaseTab('phase4')">4. 대회종료</button>
+  <button class="phase-btn"        id="btn-tab-phase4" onclick="switchPhaseTab('phase4')">4. 결과조회</button>
 </div>
 
 <main class="main">
@@ -161,19 +161,51 @@
         <button class="btn-primary" style="background:#7c3aed;color:#fff;" onclick="drawExcludeHoles()">🎲 제외홀 추첨 & 신페리오 정산</button>
       </div>
     </div>
-    <!-- ── 4단계: 대회종료 ── -->
+    <!-- ── 4단계: 결과조회 ── -->
     <div id="tab-phase4" class="hidden">
-      <div class="form-card" style="margin-top:10px;">
-        <h3>🏁 대회 마감 처리</h3>
-        <p style="font-size:12px;color:#8faa97;line-height:1.8;margin-bottom:14px;">
-          진행 순서를 확인해 주세요.<br>
-          ① 3단계 → 스코어 입력 &amp; 검증표 확인<br>
-          ② 3단계 → 💾 임시저장 (DB 반영)<br>
-          ③ 3단계 → 🎲 신페리오 정산 실행<br>
-          ④ 아래 버튼으로 대회를 최종 마감합니다.
+      <!-- 대회 요약 -->
+      <div id="phase4-matchInfo" style="font-size:12px;color:#e8d5a3;margin-bottom:12px;background:#111f17;padding:12px;border-radius:8px;border:1px solid #2d5a3d;"></div>
+
+      <!-- 마감 버튼 (진행중일 때만 표시) -->
+      <div id="phase4-closeArea" class="hidden">
+        <p style="font-size:11px;color:#8faa97;line-height:1.7;margin-bottom:10px;">
+          ① 스코어 입력 &amp; 검증표 확인 (3단계)<br>
+          ② 💾 임시저장 → 🎲 신페리오 정산 (3단계)<br>
+          ③ 아래 버튼으로 마감하세요.
         </p>
-        <div id="phase4-matchInfo" style="font-size:12px;color:#e8d5a3;margin-bottom:16px;background:#0d1f15;padding:12px;border-radius:8px;border:1px solid #2d5a3d;"></div>
-        <button class="btn-primary" style="background:#b87333;border-color:#d4953a;font-size:16px;padding:16px;" onclick="submitFinal()">🚩 대회 최종 마감</button>
+        <button class="btn-primary" style="background:#2d5a3d;border-color:#3a6b4a;" onclick="submitClose()">🚩 대회 마감 (신페리오 비공개)</button>
+      </div>
+
+      <!-- 신페리오 결과 테이블 -->
+      <div id="phase4-resultArea" class="hidden">
+        <div style="font-size:11px;font-weight:800;color:#e8d5a3;margin-bottom:8px;">📊 신페리오 정산 결과 (관리자 전용)</div>
+        <div style="overflow-x:auto;background:#0d1f15;border:1px solid #2d5a3d;border-radius:8px;padding:8px;margin-bottom:12px;">
+          <table class="grid-table" id="phase4-npTable">
+            <thead>
+              <tr>
+                <th style="text-align:left;padding-left:6px;width:20px;">#</th>
+                <th style="text-align:left;width:60px;">성명</th>
+                <th>리그</th>
+                <th>합계</th>
+                <th style="color:#e8d5a3;">Net</th>
+                <th>HDCP</th>
+                <th>Luck</th>
+              </tr>
+            </thead>
+            <tbody id="phase4-npBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 결과 공개 버튼 (마감 상태일 때만 표시) -->
+      <div id="phase4-publishArea" class="hidden">
+        <p style="font-size:11px;color:#8faa97;margin-bottom:10px;">시상이 완료되면 아래 버튼을 눌러 회원들에게 신페리오 결과를 공개합니다.</p>
+        <button class="btn-primary" style="background:#b87333;border-color:#d4953a;font-size:15px;padding:15px;" onclick="submitPublish()">📢 결과 공개 (회원 공개)</button>
+      </div>
+
+      <!-- 공개 완료 안내 -->
+      <div id="phase4-doneArea" class="hidden">
+        <div style="text-align:center;padding:16px;color:#86efac;font-size:13px;font-weight:700;">✅ 결과가 회원들에게 공개되었습니다.</div>
       </div>
     </div>
   </div>
@@ -922,41 +954,88 @@ async function endSeason(seasonId) {
 }
 
 /* ════════════════════════════════════════════════════
-   4단계: 대회종료
+   4단계: 결과조회
    ════════════════════════════════════════════════════ */
-function renderPhase4Info() {
+async function renderPhase4Info() {
   const infoDiv = document.getElementById('phase4-matchInfo');
+  const closeArea   = document.getElementById('phase4-closeArea');
+  const resultArea  = document.getElementById('phase4-resultArea');
+  const publishArea = document.getElementById('phase4-publishArea');
+  const doneArea    = document.getElementById('phase4-doneArea');
+
   if (!currentMatchId) {
     infoDiv.innerHTML = '<span style="color:#6b8f77;">연결된 대회가 없습니다.<br>상단에서 대회를 선택하세요.</span>';
+    [closeArea, resultArea, publishArea, doneArea].forEach(el => el.classList.add('hidden'));
     return;
   }
-  const eps = globalData.matchEpisodes.filter(m => m['대회번호'] === currentMatchId);
+
+  /* 최신 에피소드 데이터 가져오기 */
+  const eps = await sbGet('tb_Match_Episodes', `&대회번호=eq.${currentMatchId}`);
   const ep  = eps[0] || {};
-  const status      = ep['완료구분'] || '-';
-  const statusColor = status === '완료' ? '#86efac' : '#fcd34d';
-  const courses     = eps.map(e => e['코스']).join(', ') || '-';
-  const excludes    = eps.map(e => `${e['코스']}: [${e['제외홀'] || '미추첨'}]`).join('\n') || '-';
+  const status = ep['완료구분'] || '진행중';
+  const statusColor = status === '완료' ? '#86efac' : status === '마감' ? '#fcd34d' : '#94a3b8';
+  const courses  = eps.map(e => e['코스']).join(', ') || '-';
+  const excludes = eps.map(e => `${e['코스']}: [${e['제외홀'] || '미추첨'}]`).join('  ') || '-';
+
   infoDiv.innerHTML = `
     <div style="font-size:15px;font-weight:800;margin-bottom:6px;">${ep['대회명'] || currentMatchId}</div>
     <div style="color:#8faa97;margin-bottom:4px;">날짜: ${ep['날짜'] || '-'} &nbsp;|&nbsp; 구장: ${ep['구장명'] || currentVenue || '-'}</div>
-    <div style="color:#8faa97;margin-bottom:8px;">코스: ${courses}</div>
-    <div style="white-space:pre-line;color:#8faa97;font-size:10px;margin-bottom:8px;">제외홀 추첨 결과<br>${excludes}</div>
-    <div style="font-size:13px;">완료구분: <span style="color:${statusColor};font-weight:800;">${status}</span></div>
+    <div style="color:#8faa97;margin-bottom:6px;font-size:11px;">코스: ${courses} &nbsp;|&nbsp; 제외홀: ${excludes}</div>
+    <div>상태: <span style="color:${statusColor};font-weight:800;font-size:13px;">${status}</span></div>
   `;
+
+  /* 버튼 표시 제어 */
+  closeArea.classList.toggle('hidden',   status !== '진행중');
+  doneArea.classList.toggle('hidden',    status !== '완료');
+  publishArea.classList.toggle('hidden', status !== '마감');
+
+  /* 신페리오 결과 테이블 (마감/완료 상태에서만) */
+  if (status === '마감' || status === '완료') {
+    resultArea.classList.remove('hidden');
+    const records = await sbGet('tb_Record', `&대회번호=eq.${currentMatchId}&합계=gt.0&order=Net_Score.asc`);
+    const tbody = document.getElementById('phase4-npBody');
+    tbody.innerHTML = '';
+    records.forEach((r, i) => {
+      const lf = Number(r['Luck_Factor']) || 0;
+      const luckColor = lf > 0 ? '#86efac' : lf < 0 ? '#f87171' : '#8faa97';
+      const luckStr = (lf > 0 ? '+' : '') + lf.toFixed(2);
+      tbody.innerHTML += `<tr>
+        <td style="color:#6b8f77;padding-left:6px;">${i + 1}</td>
+        <td style="text-align:left;font-weight:700;color:#d4e4da;">${r['성명']}</td>
+        <td style="color:#8faa97;font-size:10px;">${r['소속리그']}</td>
+        <td>${r['합계']}</td>
+        <td style="color:#e8d5a3;font-weight:800;">${Number(r['Net_Score']).toFixed(2)}</td>
+        <td style="color:#8faa97;">${Number(r['NP_Handicap']).toFixed(2)}</td>
+        <td style="color:${luckColor};font-weight:700;">${luckStr}</td>
+      </tr>`;
+    });
+  } else {
+    resultArea.classList.add('hidden');
+  }
 }
 
-async function submitFinal() {
+async function submitClose() {
   if (!currentMatchId) return alert('상단에서 대회를 선택하세요.');
-  const eps = globalData.matchEpisodes.filter(m => m['대회번호'] === currentMatchId);
-  if (eps.length > 0 && eps[0]['완료구분'] === '완료') return alert('이미 마감 처리된 대회입니다.');
-  if (!confirm('대회를 최종 마감하시겠습니까?\n\n완료구분이 "완료"로 변경됩니다.\n이 작업은 되돌릴 수 없습니다.')) return;
-  showLoading('대회 마감 처리 중...');
+  if (!confirm('대회를 마감하시겠습니까?\n\n신페리오 결과는 관리자만 볼 수 있고\n회원 화면에는 그로스 결과만 공개됩니다.')) return;
+  showLoading('마감 처리 중...');
+  try {
+    await sbPatch('tb_Match_Episodes', `대회번호=eq.${currentMatchId}`, { 완료구분: '마감' });
+    hideLoading();
+    await loadAdminInitData();
+    renderPhase4Info();
+  } catch(err) { hideLoading(); alert('오류: ' + err.message); }
+}
+
+async function submitPublish() {
+  if (!currentMatchId) return alert('상단에서 대회를 선택하세요.');
+  if (!confirm('신페리오 결과를 회원들에게 공개하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.')) return;
+  showLoading('결과 공개 중...');
   try {
     await sbPatch('tb_Match_Episodes', `대회번호=eq.${currentMatchId}`, { 완료구분: '완료' });
     hideLoading();
-    alert('대회 마감 처리가 완료되었습니다.\n\n대회가 완료 목록으로 이동됩니다.');
+    alert('결과가 공개되었습니다!');
     await loadAdminInitData();
-    switchPhaseTab('phase1');
+    renderPhase4Info();
   } catch(err) { hideLoading(); alert('오류: ' + err.message); }
 }
 
