@@ -166,40 +166,59 @@
       <!-- 대회 요약 -->
       <div id="phase4-matchInfo" style="font-size:12px;color:#e8d5a3;margin-bottom:12px;background:#111f17;padding:12px;border-radius:8px;border:1px solid #2d5a3d;"></div>
 
-      <!-- 마감 버튼 (진행중일 때만 표시) -->
+      <!-- 마감 버튼 (진행중일 때만) -->
       <div id="phase4-closeArea" class="hidden">
         <p style="font-size:11px;color:#8faa97;line-height:1.7;margin-bottom:10px;">
           ① 스코어 입력 &amp; 검증표 확인 (3단계)<br>
           ② 💾 임시저장 → 🎲 신페리오 정산 (3단계)<br>
           ③ 아래 버튼으로 마감하세요.
         </p>
-        <button class="btn-primary" style="background:#2d5a3d;border-color:#3a6b4a;" onclick="submitClose()">🚩 대회 마감 (신페리오 비공개)</button>
+        <button class="btn-primary" style="background:#2d5a3d;border-color:#3a6b4a;margin-bottom:16px;" onclick="submitClose()">🚩 대회 마감 (신페리오 비공개)</button>
       </div>
 
-      <!-- 신페리오 결과 테이블 -->
+      <!-- 결과 조회 영역 (마감/완료 시) -->
       <div id="phase4-resultArea" class="hidden">
-        <div style="font-size:11px;font-weight:800;color:#e8d5a3;margin-bottom:8px;">📊 신페리오 정산 결과 (관리자 전용)</div>
-        <div style="overflow-x:auto;background:#0d1f15;border:1px solid #2d5a3d;border-radius:8px;padding:8px;margin-bottom:12px;">
-          <table class="grid-table" id="phase4-npTable">
-            <thead>
-              <tr>
+        <!-- 서브탭 -->
+        <div class="filter-row" style="margin-bottom:10px;">
+          <button class="filter-btn active" id="p4-btn-np"    onclick="setPhase4SubTab('np')">🎯 신페리오</button>
+          <button class="filter-btn"        id="p4-btn-title" onclick="setPhase4SubTab('title')">🏅 번외타이틀</button>
+          <button class="filter-btn"        id="p4-btn-team"  onclick="setPhase4SubTab('team')">🟦🟨 청백전</button>
+        </div>
+        <!-- 신페리오 테이블 -->
+        <div id="phase4-npSection">
+          <div style="overflow-x:auto;background:#0d1f15;border:1px solid #2d5a3d;border-radius:8px;padding:8px;margin-bottom:12px;">
+            <table class="grid-table">
+              <thead><tr>
                 <th style="text-align:left;padding-left:6px;width:20px;">#</th>
                 <th style="text-align:left;width:60px;">성명</th>
-                <th>리그</th>
-                <th>합계</th>
-                <th style="color:#e8d5a3;">Net</th>
-                <th>HDCP</th>
-                <th>Luck</th>
-              </tr>
-            </thead>
-            <tbody id="phase4-npBody"></tbody>
-          </table>
+                <th>리그</th><th>합계</th>
+                <th style="color:#e8d5a3;">Net</th><th>HDCP</th><th>Luck</th>
+              </tr></thead>
+              <tbody id="phase4-npBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <!-- 번외타이틀 테이블 -->
+        <div id="phase4-titleSection" class="hidden">
+          <div style="overflow-x:auto;background:#0d1f15;border:1px solid #2d5a3d;border-radius:8px;padding:8px;margin-bottom:12px;">
+            <table class="grid-table">
+              <thead><tr>
+                <th style="text-align:left;padding-left:6px;">성명</th>
+                <th>🦅버디</th><th>✅파</th><th>📋보기</th><th>💥더블</th>
+              </tr></thead>
+              <tbody id="phase4-titleBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <!-- 청백전 테이블 -->
+        <div id="phase4-teamSection" class="hidden">
+          <div id="phase4-teamContent" style="margin-bottom:12px;"></div>
         </div>
       </div>
 
-      <!-- 결과 공개 버튼 (마감 상태일 때만 표시) -->
+      <!-- 결과 공개 버튼 (마감 상태일 때만) -->
       <div id="phase4-publishArea" class="hidden">
-        <p style="font-size:11px;color:#8faa97;margin-bottom:10px;">시상이 완료되면 아래 버튼을 눌러 회원들에게 신페리오 결과를 공개합니다.</p>
+        <p style="font-size:11px;color:#8faa97;margin-bottom:10px;">시상이 완료되면 아래 버튼을 눌러 회원들에게 공개합니다.</p>
         <button class="btn-primary" style="background:#b87333;border-color:#d4953a;font-size:15px;padding:15px;" onclick="submitPublish()">📢 결과 공개 (회원 공개)</button>
       </div>
 
@@ -368,6 +387,7 @@ let currentVenue   = '';
 let isEditMode     = false;
 let memberFilter   = '활동중';
 let nmGender       = '';   /* 신규회원 등록 시 선택 성별 */
+let phase4SubTab   = 'np'; /* 결과조회 서브탭 */
 
 /* ═══ UI 유틸 ═══ */
 function showLoading(msg) { document.getElementById('loading-text').innerText = msg; document.getElementById('admin-loading').style.display = 'flex'; }
@@ -957,7 +977,7 @@ async function endSeason(seasonId) {
    4단계: 결과조회
    ════════════════════════════════════════════════════ */
 async function renderPhase4Info() {
-  const infoDiv = document.getElementById('phase4-matchInfo');
+  const infoDiv     = document.getElementById('phase4-matchInfo');
   const closeArea   = document.getElementById('phase4-closeArea');
   const resultArea  = document.getElementById('phase4-resultArea');
   const publishArea = document.getElementById('phase4-publishArea');
@@ -969,7 +989,6 @@ async function renderPhase4Info() {
     return;
   }
 
-  /* 최신 에피소드 데이터 가져오기 */
   const eps = await sbGet('tb_Match_Episodes', `&대회번호=eq.${currentMatchId}`);
   const ep  = eps[0] || {};
   const status = ep['완료구분'] || '진행중';
@@ -984,34 +1003,107 @@ async function renderPhase4Info() {
     <div>상태: <span style="color:${statusColor};font-weight:800;font-size:13px;">${status}</span></div>
   `;
 
-  /* 버튼 표시 제어 */
   closeArea.classList.toggle('hidden',   status !== '진행중');
   doneArea.classList.toggle('hidden',    status !== '완료');
   publishArea.classList.toggle('hidden', status !== '마감');
 
-  /* 신페리오 결과 테이블 (마감/완료 상태에서만) */
   if (status === '마감' || status === '완료') {
     resultArea.classList.remove('hidden');
     const records = await sbGet('tb_Record', `&대회번호=eq.${currentMatchId}&합계=gt.0&order=Net_Score.asc`);
-    const tbody = document.getElementById('phase4-npBody');
-    tbody.innerHTML = '';
-    records.forEach((r, i) => {
-      const lf = Number(r['Luck_Factor']) || 0;
-      const luckColor = lf > 0 ? '#86efac' : lf < 0 ? '#f87171' : '#8faa97';
-      const luckStr = (lf > 0 ? '+' : '') + lf.toFixed(2);
-      tbody.innerHTML += `<tr>
-        <td style="color:#6b8f77;padding-left:6px;">${i + 1}</td>
-        <td style="text-align:left;font-weight:700;color:#d4e4da;">${r['성명']}</td>
-        <td style="color:#8faa97;font-size:10px;">${r['소속리그']}</td>
-        <td>${r['합계']}</td>
-        <td style="color:#e8d5a3;font-weight:800;">${Number(r['Net_Score']).toFixed(2)}</td>
-        <td style="color:#8faa97;">${Number(r['NP_Handicap']).toFixed(2)}</td>
-        <td style="color:${luckColor};font-weight:700;">${luckStr}</td>
-      </tr>`;
-    });
+    renderPhase4NP(records);
+    renderPhase4Title(records);
+    renderPhase4Team(records);
+    setPhase4SubTab(phase4SubTab);
   } else {
     resultArea.classList.add('hidden');
   }
+}
+
+function setPhase4SubTab(tab) {
+  phase4SubTab = tab;
+  ['np','title','team'].forEach(t => {
+    document.getElementById('p4-btn-' + t).classList.toggle('active', t === tab);
+    document.getElementById('phase4-' + t + 'Section').classList.toggle('hidden', t !== tab);
+  });
+}
+
+function renderPhase4NP(records) {
+  const sorted = [...records].sort((a, b) => Number(a['Net_Score']) - Number(b['Net_Score']));
+  const tbody = document.getElementById('phase4-npBody');
+  tbody.innerHTML = '';
+  sorted.forEach((r, i) => {
+    const lf = Number(r['Luck_Factor']) || 0;
+    const luckColor = lf > 0 ? '#86efac' : lf < 0 ? '#f87171' : '#8faa97';
+    const luckStr = (lf > 0 ? '+' : '') + lf.toFixed(2);
+    tbody.innerHTML += `<tr>
+      <td style="color:#6b8f77;padding-left:6px;">${i + 1}</td>
+      <td style="text-align:left;font-weight:700;color:#d4e4da;">${r['성명']}</td>
+      <td style="color:#8faa97;font-size:10px;">${r['소속리그']}</td>
+      <td>${r['합계']}</td>
+      <td style="color:#e8d5a3;font-weight:800;">${Number(r['Net_Score']).toFixed(2)}</td>
+      <td style="color:#8faa97;">${Number(r['NP_Handicap']).toFixed(2)}</td>
+      <td style="color:${luckColor};font-weight:700;">${luckStr}</td>
+    </tr>`;
+  });
+}
+
+function renderPhase4Title(records) {
+  /* H1~H18에서 버디/파/보기/더블 집계 */
+  const stats = records.map(r => {
+    let b=0, p=0, bg=0, d=0;
+    for(let i=1; i<=18; i++) {
+      const s = Number(r['H'+i]);
+      if(s !== null && !isNaN(s) && r['H'+i] !== null) {
+        if(s < 0) b++; else if(s === 0) p++; else if(s === 1) bg++; else d++;
+      }
+    }
+    return { ...r, _b:b, _p:p, _bg:bg, _d:d };
+  }).sort((a,b) => b._b - a._b);
+
+  const tbody = document.getElementById('phase4-titleBody');
+  tbody.innerHTML = '';
+  stats.forEach(r => {
+    tbody.innerHTML += `<tr>
+      <td style="text-align:left;padding-left:6px;font-weight:700;color:#d4e4da;">${r['성명']}</td>
+      <td style="color:#3b82f6;font-weight:700;">${r._b}</td>
+      <td style="color:#22c55e;">${r._p}</td>
+      <td style="color:#eab308;">${r._bg}</td>
+      <td style="color:#ef4444;">${r._d}</td>
+    </tr>`;
+  });
+}
+
+function renderPhase4Team(records) {
+  const blue  = records.filter(r => r['소속팀'] === '청팀').sort((a,b) => a['합계'] - b['합계']);
+  const white = records.filter(r => r['소속팀'] === '백팀').sort((a,b) => a['합계'] - b['합계']);
+  const bTotal = blue.reduce((s,r)  => s + r['합계'], 0);
+  const wTotal = white.reduce((s,r) => s + r['합계'], 0);
+  const bWin = bTotal < wTotal, wWin = wTotal < bTotal;
+
+  if(blue.length === 0 && white.length === 0) {
+    document.getElementById('phase4-teamContent').innerHTML =
+      `<div style="text-align:center;padding:20px;color:#6b8f77;">팀 배정 데이터가 없습니다.</div>`;
+    return;
+  }
+
+  const teamRow = (r) => `<div style="display:flex;justify-content:space-between;padding:6px 8px;border-bottom:1px solid #1e3a2a;">
+    <span style="color:#d4e4da;">${r['성명']}</span><span style="font-weight:700;">${r['합계']}</span></div>`;
+
+  document.getElementById('phase4-teamContent').innerHTML = `
+    <div style="display:flex;gap:8px;">
+      <div style="flex:1;background:#0d1f15;border:1px solid ${bWin?'#3b82f6':'#2d5a3d'};border-radius:8px;overflow:hidden;">
+        <div style="padding:8px;font-size:12px;font-weight:800;color:#60a5fa;background:#111f17;">🟦 청팀 ${bWin?'👑':''}</div>
+        ${blue.map(teamRow).join('')}
+        <div style="display:flex;justify-content:space-between;padding:6px 8px;color:#60a5fa;font-weight:800;">
+          <span>합계</span><span>${bTotal}</span></div>
+      </div>
+      <div style="flex:1;background:#0d1f15;border:1px solid ${wWin?'#e8d5a3':'#2d5a3d'};border-radius:8px;overflow:hidden;">
+        <div style="padding:8px;font-size:12px;font-weight:800;color:#e8d5a3;background:#111f17;">🟨 백팀 ${wWin?'👑':''}</div>
+        ${white.map(teamRow).join('')}
+        <div style="display:flex;justify-content:space-between;padding:6px 8px;color:#e8d5a3;font-weight:800;">
+          <span>합계</span><span>${wTotal}</span></div>
+      </div>
+    </div>`;
 }
 
 async function submitClose() {

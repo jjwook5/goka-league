@@ -107,8 +107,8 @@
   /* 파 기호 행 */
   .s-sym-row { display: flex; align-items: center; background: transparent; padding: 0 4px; margin-bottom: 1px; }
   .s-sym-cells { display: flex; flex: 1; justify-content: space-between; padding: 0 4px; }
-  .s-sym-cell { width: 22px; height: 14px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; }
-  .sym-p3 { color: #60a5fa; }   /* 파3: 파란 점 */
+  .s-sym-cell { width: 22px; height: 12px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+  .sym-p3 { color: #60a5fa; }   /* 파3: 파란 불릿 */
   .sym-p5 { color: #fb923c; }   /* 파5: 주황 대시 */
   /* 코스명 소헤더 */
   .s-course-lbl { font-size: 10px; font-weight: 700; color: #5a7f6a; padding: 6px 4px 2px; letter-spacing: 0.5px; }
@@ -309,6 +309,15 @@ function renderResults() {
     </div>`;
   }
   
+  /* 선택된 대회 공개 여부 (스트로크 외 탭 잠금 기준) */
+  const curEp = DATA.matches.find(m => m['대회번호'] === currentMatchId);
+  const isPublished = curEp && curEp['완료구분'] === '완료';
+  const lockHtml = `<div style="text-align:center;padding:32px 16px;">
+    <div style="font-size:32px;margin-bottom:12px;">🔒</div>
+    <div style="font-size:14px;font-weight:800;color:#e8d5a3;margin-bottom:8px;">집계 중</div>
+    <div style="font-size:12px;color:#6b8f77;line-height:1.7;">시상 후 결과가 공개됩니다.<br>조금만 기다려 주세요!</div>
+  </div>`;
+
   /* ★ 서브탭: 신페리오 / 스트로크 / 번외타이틀(통합) / 청백팀 */
   html += `<div class="sub-tab-scroll">
     ${[
@@ -323,17 +332,8 @@ function renderResults() {
   
   /* ─── 신페리오 풀포맷 ─── */
   if(currentResultSubTab === 'np') {
-    /* 선택된 대회의 완료구분 확인 */
-    const curEp = DATA.matches.find(m => m['대회번호'] === currentMatchId);
-    const isPublished = curEp && curEp['완료구분'] === '완료';
-
     if(!isPublished) {
-      /* 마감 상태: 신페리오 잠금 */
-      html += `<div style="text-align:center;padding:32px 16px;">
-        <div style="font-size:32px;margin-bottom:12px;">🔒</div>
-        <div style="font-size:14px;font-weight:800;color:#e8d5a3;margin-bottom:8px;">신페리오 정산 집계 중</div>
-        <div style="font-size:12px;color:#6b8f77;line-height:1.7;">시상 후 결과가 공개됩니다.<br>조금만 기다려 주세요!</div>
-      </div>`;
+      html += lockHtml;
     } else {
       html += `<div class="np-table-wrapper">
         <table class="np-grid-table">
@@ -375,6 +375,8 @@ function renderResults() {
   }
   /* ─── ★ [개선1-1] 번외타이틀 통합 테이블 ─── */
   else if(currentResultSubTab === 'title') {
+    if(!isPublished) { html += lockHtml; }
+    else {
     const sortArrow = (col) => currentTitleSort === col ? ' ▼' : '';
     html += `<div class="title-table-wrapper">
       <table class="title-table">
@@ -398,9 +400,12 @@ function renderResults() {
       </tr>`;
     });
     html += `</tbody></table></div>`;
+    } /* end isPublished */
   }
   /* ─── ★ [개선1-2] 청백팀 결과 ─── */
   else if(currentResultSubTab === 'team') {
+    if(!isPublished) { html += lockHtml; }
+    else {
     const blueTeam = recs.filter(r => r['소속팀'] === '청팀').sort((a,b) => a['합계'] - b['합계']);
     const whiteTeam = recs.filter(r => r['소속팀'] === '백팀').sort((a,b) => a['합계'] - b['합계']);
     const blueTotal = blueTeam.reduce((s,r) => s + r['합계'], 0);
@@ -428,6 +433,7 @@ function renderResults() {
     if(blueTeam.length === 0 && whiteTeam.length === 0) {
       html += `<div style="text-align:center; padding:20px; color:#6b8f77; font-size:13px;">팀 배정 데이터가 없습니다.</div>`;
     }
+    } /* end isPublished */
   }
   
   el.innerHTML = html;
@@ -480,7 +486,7 @@ function renderProfile() {
     /* ★ [개선2] 홀별 스코어 — 파기호 + 오버파 표기 */
     /* 파기호: 파3=● (파란), 파4=공백, 파5=— (주황) */
     function parSym(p) {
-      if(p===3) return `<div class="s-sym-cell sym-p3">●</div>`;
+      if(p===3) return `<div class="s-sym-cell sym-p3">•</div>`;
       if(p===5) return `<div class="s-sym-cell sym-p5">—</div>`;
       return `<div class="s-sym-cell"></div>`;
     }
