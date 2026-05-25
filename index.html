@@ -160,6 +160,7 @@ let currentMatchId = '';
 let currentResultSubTab = 'np';
 let currentTitleSort = 'b'; // ★ 통합 타이틀 테이블 기본 정렬
 let currentPlayer = null;
+let profileNameMode = 'nick'; // ★ 선수카드 목록 표기 모드: 'nick' | 'name'
 
 function esc(str) { return String(str || '').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 function numFmt(val) { 
@@ -452,8 +453,32 @@ function openPlayerProfile(phone) {
 function renderProfile() {
   const el = document.getElementById('tab-profile');
   if(!currentPlayer) {
-    let html = `<h3 style="color:#e8d5a3; margin-bottom:12px; font-size:14px;">선수 프로필 선택</h3><div style="display:flex;flex-wrap:wrap;gap:8px;">`;
-    DATA.members.forEach(m => html += `<div class="sub-tab" onclick="openPlayerProfile('${m['전화번호']}')">${m['성명']} (${m['소속리그']})</div>`);
+    /* 정렬: 선택 모드 기준 오름차순 */
+    const sorted = [...DATA.members].sort((a, b) => {
+      const ka = profileNameMode === 'nick' ? (a['닉네임'] || a['성명']) : a['성명'];
+      const kb = profileNameMode === 'nick' ? (b['닉네임'] || b['성명']) : b['성명'];
+      return ka.localeCompare(kb, 'ko');
+    });
+    const nickActive = profileNameMode === 'nick';
+    let html = `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <h3 style="color:#e8d5a3;font-size:14px;margin:0;">선수 프로필 선택</h3>
+        <div style="display:flex;gap:4px;margin-left:auto;">
+          <button onclick="profileNameMode='nick';renderProfile();"
+            style="font-size:11px;padding:4px 8px;border-radius:12px;border:1px solid #2d5a3d;cursor:pointer;
+                   background:${nickActive?'#2d5a3d':'transparent'};color:${nickActive?'#e8d5a3':'#8faa97'};">닉네임순</button>
+          <button onclick="profileNameMode='name';renderProfile();"
+            style="font-size:11px;padding:4px 8px;border-radius:12px;border:1px solid #2d5a3d;cursor:pointer;
+                   background:${!nickActive?'#2d5a3d':'transparent'};color:${!nickActive?'#e8d5a3':'#8faa97'};">성명순</button>
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">`;
+    sorted.forEach(m => {
+      const label = profileNameMode === 'nick'
+        ? (m['닉네임'] ? `${m['닉네임']} (${m['성명']})` : m['성명'])
+        : `${m['성명']}${m['닉네임'] ? ' ('+m['닉네임']+')' : ''}`;
+      html += `<div class="sub-tab" onclick="openPlayerProfile('${m['전화번호']}')">${label}<span style="font-size:10px;color:#5a7f6a;margin-left:4px;">${m['소속리그']}</span></div>`;
+    });
     html += `</div>`;
     el.innerHTML = html; return;
   }

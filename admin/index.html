@@ -212,9 +212,12 @@
         <div id="phase4-titleSection" class="hidden">
           <div style="overflow-x:auto;background:#0d1f15;border:1px solid #2d5a3d;border-radius:8px;padding:8px;margin-bottom:12px;">
             <table class="grid-table">
-              <thead><tr>
+              <thead><tr id="phase4-titleHeader">
                 <th style="text-align:left;padding-left:6px;">성명</th>
-                <th>🦅버디</th><th>✅파</th><th>📋보기</th><th>💥더블</th>
+                <th style="cursor:pointer;" onclick="sortPhase4Title('b')">🦅버디</th>
+                <th style="cursor:pointer;" onclick="sortPhase4Title('p')">✅파</th>
+                <th style="cursor:pointer;" onclick="sortPhase4Title('bg')">📋보기</th>
+                <th style="cursor:pointer;" onclick="sortPhase4Title('d')">💥더블</th>
               </tr></thead>
               <tbody id="phase4-titleBody"></tbody>
             </table>
@@ -398,6 +401,7 @@ let isEditMode     = false;
 let memberFilter   = '활동중';
 let nmGender       = '';   /* 신규회원 등록 시 선택 성별 */
 let phase4SubTab   = 'np'; /* 결과조회 서브탭 */
+let phase4TitleSort = 'b'; /* 번외타이틀 정렬 기준: b/p/bg/d */
 
 /* ═══ UI 유틸 ═══ */
 function showLoading(msg) { document.getElementById('loading-text').innerText = msg; document.getElementById('admin-loading').style.display = 'flex'; }
@@ -526,13 +530,17 @@ function goToStepA() { document.getElementById('phase1-stepB').classList.add('hi
 function renderRoster() {
   const container = document.getElementById('rosterList'); container.innerHTML = '';
   const assignedPhones = Object.values(assignedGroups).flat().map(p => p.phone);
-  /* 활동중 회원만 표시 */
-  globalData.members.filter(m => m['활동상태'] === '활동중').forEach(m => {
-    if (!assignedPhones.includes(m['전화번호'])) {
-      const el = document.createElement('div'); el.className = 'player-chip';
-      el.innerHTML = `<span>${m['성명']}</span><span style="font-size:9px;color:#8faa97">${m['소속리그']}</span>`;
-      el.onclick = () => assignPlayer(m); container.appendChild(el);
-    }
+  /* 활동중 회원만, 닉네임 오름차순 정렬 */
+  const available = globalData.members
+    .filter(m => m['활동상태'] === '활동중' && !assignedPhones.includes(m['전화번호']))
+    .sort((a, b) => (a['닉네임'] || a['성명']).localeCompare(b['닉네임'] || b['성명'], 'ko'));
+  available.forEach(m => {
+    const nick = m['닉네임'] || '';
+    const el = document.createElement('div'); el.className = 'player-chip';
+    el.innerHTML = nick
+      ? `<span>${nick}</span><span style="font-size:9px;color:#8faa97">(${m['성명']}) ${m['소속리그']}</span>`
+      : `<span>${m['성명']}</span><span style="font-size:9px;color:#8faa97">${m['소속리그']}</span>`;
+    el.onclick = () => assignPlayer(m); container.appendChild(el);
   });
 }
 function renderGroupBoxes() {
@@ -596,13 +604,21 @@ async function submitPhase1() {
 function renderMappingUI() {
   document.getElementById('selectedVenueText').value = currentVenue || '연결된 대회 없음';
   const venueCourses = globalData.courses.filter(c => c['구장명'] === currentVenue && c['사용여부'] === 'Y').map(c => c['코스명']);
-  const options = venueCourses.map(c => `<option value="${c}">${c}</option>`).join('');
   let html = '';
   Object.keys(assignedGroups).forEach(g => {
+    /* 기저장된 코스 복원: 해당 대회·조번호의 첫 번째 레코드에서 읽기 */
+    const existingRec = globalData.records.find(r =>
+      String(r['대회번호']) === String(currentMatchId) && r['조번호'] === g);
+    const savedFront = existingRec ? (existingRec['전반코스'] || '') : '';
+    const savedBack  = existingRec ? (existingRec['후반코스'] || '') : '';
+    const frontOpts = venueCourses.map(c =>
+      `<option value="${c}"${c === savedFront ? ' selected' : ''}>${c}</option>`).join('');
+    const backOpts  = venueCourses.map(c =>
+      `<option value="${c}"${c === savedBack  ? ' selected' : ''}>${c}</option>`).join('');
     html += `<div class="group-box" style="display:flex;justify-content:space-between;align-items:center;">
                <span style="color:#e8d5a3;font-weight:700;">${g}</span>
-               <select id="front_${g}" class="form-select" style="width:110px;padding:6px;">${options}</select> ➔
-               <select id="back_${g}" class="form-select" style="width:110px;padding:6px;">${options}</select></div>`;
+               <select id="front_${g}" class="form-select" style="width:110px;padding:6px;">${frontOpts}</select> ➔
+               <select id="back_${g}" class="form-select" style="width:110px;padding:6px;">${backOpts}</select></div>`;
   });
   document.getElementById('mappingContainer').innerHTML = html;
 }
@@ -1086,16 +1102,35 @@ function renderPhase4NP(records) {
 
 function renderPhase4Title(records) {
   /* H1~H18에서 버디/파/보기/더블 집계 */
-  const stats = records.map(r => {
+  const base = records.map(r => {
     let b=0, p=0, bg=0, d=0;
     for(let i=1; i<=18; i++) {
       const s = Number(r['H'+i]);
-      if(s !== null && !isNaN(s) && r['H'+i] !== null) {
+      if(r['H'+i] !== null && !isNaN(s)) {
         if(s < 0) b++; else if(s === 0) p++; else if(s === 1) bg++; else d++;
       }
     }
     return { ...r, _b:b, _p:p, _bg:bg, _d:d };
-  }).sort((a,b) => b._b - a._b);
+  });
+  applyPhase4TitleSort(base);
+}
+function applyPhase4TitleSort(stats) {
+  const key = { b:'_b', p:'_p', bg:'_bg', d:'_d' }[phase4TitleSort] || '_b';
+  stats.sort((a, b) => b[key] - a[key]);
+
+  /* 헤더 강조 */
+  const labels = { b:'🦅버디', p:'✅파', bg:'📋보기', d:'💥더블' };
+  const colors  = { b:'#3b82f6', p:'#22c55e', bg:'#eab308', d:'#ef4444' };
+  const header = document.getElementById('phase4-titleHeader');
+  if (header) {
+    const ths = header.querySelectorAll('th[onclick]');
+    const keys = ['b','p','bg','d'];
+    ths.forEach((th, i) => {
+      const k = keys[i];
+      th.style.color = k === phase4TitleSort ? colors[k] : '';
+      th.style.textDecoration = k === phase4TitleSort ? 'underline' : '';
+    });
+  }
 
   const tbody = document.getElementById('phase4-titleBody');
   tbody.innerHTML = '';
@@ -1108,6 +1143,13 @@ function renderPhase4Title(records) {
       <td style="color:#ef4444;">${r._d}</td>
     </tr>`;
   });
+}
+function sortPhase4Title(key) {
+  phase4TitleSort = key;
+  /* 현재 렌더링된 tbody 데이터를 재집계할 records는 globalData에서 가져오기 */
+  const records = globalData.records.filter(r =>
+    String(r['대회번호']) === String(currentMatchId));
+  renderPhase4Title(records);
 }
 
 function renderPhase4Team(records) {
