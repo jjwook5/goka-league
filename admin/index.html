@@ -156,9 +156,19 @@
           <tbody id="previewBody"></tbody>
         </table>
       </div>
+      <!-- 임시저장 (검증표 확인 후에만 노출) -->
       <div id="actionButtons" class="hidden" style="display:flex;flex-direction:column;gap:8px;margin-top:16px;">
         <button class="btn-primary" style="background:#1e3a8a;" onclick="submitPhase3()">💾 임시저장</button>
-        <button class="btn-primary" style="background:#7c3aed;color:#fff;" onclick="drawExcludeHoles()">🎲 제외홀 추첨 & 신페리오 정산</button>
+      </div>
+
+      <!-- 신페리오 정산 (항상 노출) -->
+      <div style="margin-top:20px;border-top:1px solid #1e3a2a;padding-top:16px;">
+        <div style="font-size:11px;font-weight:800;color:#e8d5a3;margin-bottom:8px;">🎲 STEP 3 — 제외홀 추첨 &amp; 신페리오 정산</div>
+        <p style="font-size:11px;color:#8faa97;line-height:1.7;margin-bottom:10px;">
+          모든 조의 스코어 임시저장 완료 후 아래 버튼을 눌러<br>
+          제외홀 추첨과 신페리오 핸디캡을 한 번에 계산합니다.
+        </p>
+        <button class="btn-primary" style="background:#7c3aed;color:#fff;" onclick="drawExcludeHoles()">🎲 제외홀 추첨 &amp; 신페리오 정산</button>
       </div>
     </div>
     <!-- ── 4단계: 결과조회 ── -->
@@ -678,6 +688,13 @@ async function submitPhase3() {
       if (!ps.scores || ps.scores.length !== 18) return Promise.resolve();
       const rec = matchRecords.find(r => r['성명'] === ps.name); if (!rec) return Promise.resolve();
       const upd = {}; ps.scores.forEach((s, i) => { upd[`H${i+1}`] = s; });
+      // 임시저장 시 합계(gross)도 함께 계산
+      const fc = globalData.courses.find(c => c['구장명'] === rec['구장명'] && c['코스명'] === rec['전반코스']);
+      const bc = globalData.courses.find(c => c['구장명'] === rec['구장명'] && c['코스명'] === rec['후반코스']);
+      if (fc && bc) {
+        const basePar = [...fc.P, ...bc.P].reduce((a,b)=>a+b,0);
+        upd['합계'] = basePar + ps.scores.reduce((a,b)=>a+b,0);
+      }
       return sbPatch('tb_Record', `대회번호=eq.${currentMatchId}&전화번호=eq.${encodeURIComponent(rec['전화번호'])}`, upd);
     }));
     hideLoading(); alert(`${jsonScores.length}명의 스코어가 임시저장되었습니다.`);
@@ -689,6 +706,17 @@ async function submitPhase3() {
 
 async function drawExcludeHoles() {
   if (!currentMatchId) return alert('상단에서 대회를 선택하세요.');
+
+  // 전원 스코어 입력 여부 확인 (합계 >= 1)
+  showLoading('스코어 입력 현황 확인 중...');
+  const checkRecords = await sbGet('tb_Record', `&대회번호=eq.${currentMatchId}`);
+  hideLoading();
+  const incomplete = checkRecords.filter(r => !r['합계'] || Number(r['합계']) < 1);
+  if (incomplete.length > 0) {
+    alert(`⚠️ 스코어가 입력되지 않은 선수가 있습니다.\n\n미입력 선수 (${incomplete.length}명):\n${incomplete.map(r => '  · ' + r['성명']).join('\n')}\n\n모든 선수의 스코어를 임시저장한 후 다시 시도하세요.`);
+    return;
+  }
+
   if (!confirm('제외홀을 무작위 추첨하고 신페리오 정산을 실행합니다.\n계속하시겠습니까?')) return;
   showLoading('🎲 제외홀 추첨 및 정산 중...');
   try {
