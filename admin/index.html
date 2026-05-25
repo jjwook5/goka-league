@@ -452,10 +452,19 @@ async function loadAdminInitData() {
     activeMatches = Object.values(matchMap);
 
     const selector = document.getElementById('sessionMatchSelector');
+    const prevMatchId = currentMatchId; // 현재 선택 보존
     selector.innerHTML = '<option value="NEW">+ 새 대회 생성하기</option>';
     activeMatches.forEach(m => {
-      const opt = document.createElement('option'); opt.value = m.matchId; opt.innerText = `[진행중] ${m.matchName}`; selector.appendChild(opt);
+      const opt = document.createElement('option');
+      opt.value = m.matchId;
+      const matchEps = matchEpisodes.filter(e => e['대회번호'] === m.matchId);
+      const epStatus = (matchEps[0] && matchEps[0]['완료구분']) || '진행중';
+      const label = epStatus === '마감' ? '[마감]' : '[진행중]';
+      opt.innerText = `${label} ${m.matchName}`;
+      selector.appendChild(opt);
     });
+    // 이전 선택 복원 (마감/공개 처리 후에도 선택 유지)
+    if (prevMatchId) selector.value = String(prevMatchId);
 
     hideLoading();
   } catch(err) { hideLoading(); alert('데이터 로딩 실패: ' + err.message); }
@@ -1112,9 +1121,10 @@ async function submitClose() {
   showLoading('마감 처리 중...');
   try {
     await sbPatch('tb_Match_Episodes', `대회번호=eq.${currentMatchId}`, { 완료구분: '마감' });
-    hideLoading();
     await loadAdminInitData();
-    renderPhase4Info();
+    hideLoading();
+    switchPhaseTab('phase4');   // 4단계 탭 유지
+    await renderPhase4Info();   // 결과 즉시 갱신
   } catch(err) { hideLoading(); alert('오류: ' + err.message); }
 }
 
@@ -1124,10 +1134,11 @@ async function submitPublish() {
   showLoading('결과 공개 중...');
   try {
     await sbPatch('tb_Match_Episodes', `대회번호=eq.${currentMatchId}`, { 완료구분: '완료' });
+    await loadAdminInitData();
     hideLoading();
     alert('결과가 공개되었습니다!');
-    await loadAdminInitData();
-    renderPhase4Info();
+    switchPhaseTab('phase4');   // 4단계 탭 유지
+    await renderPhase4Info();   // 완료 상태 갱신
   } catch(err) { hideLoading(); alert('오류: ' + err.message); }
 }
 
@@ -1151,14 +1162,15 @@ async function runNPCalculation() {
     const fc = globalData.courses.find(c => c['구장명'] === r['구장명'] && c['코스명'] === r['전반코스']);
     const bc = globalData.courses.find(c => c['구장명'] === r['구장명'] && c['코스명'] === r['후반코스']);
     if (!fc || !bc) return Promise.resolve();
-    const pars = [...fc.P, ...bc.P];
-    let sel=0, tot=0;
-    for(let h=0;h<9;h++){const o=Math.max(0,scores[h]);tot+=o;if(!fx.includes(h+1))sel+=o;}
-    for(let h=0;h<9;h++){const o=Math.max(0,scores[h+9]);tot+=o;if(!bx.includes(h+1))sel+=o;}
+    const pars    = [...fc.P, ...bc.P];
+    const basePar = pars.reduce((a,b)=>a+b,0);
+    let sel=0;
+    for(let h=0;h<9;h++){if(!fx.includes(h+1))sel+=scores[h];}
+    for(let h=0;h<9;h++){if(!bx.includes(h+1))sel+=scores[h+9];}
     const np   = Math.round(sel*1.5*0.8*100)/100;
-    const gros = pars.reduce((a,b)=>a+b,0) + scores.reduce((a,b)=>a+b,0);
+    const gros = basePar + scores.reduce((a,b)=>a+b,0);
     const net  = Math.round((gros - np)*100)/100;
-    const luck = Math.round((np - tot*0.8)*100)/100;
+    const luck = Math.round((np - (gros - basePar)*0.8)*100)/100;
     updatedCount++;
     return sbPatch('tb_Record', `대회번호=eq.${currentMatchId}&전화번호=eq.${encodeURIComponent(r['전화번호'])}`,
       { 합계:gros, NP_Handicap:np, Net_Score:net, Luck_Factor:luck });
