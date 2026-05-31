@@ -299,9 +299,30 @@ function renderResults() {
     return mb ? { ...r, 성명: mb['성명'], 닉네임: mb['닉네임'] || '' } : r;
   });
 
+  // 후반9홀 오버파 합계 (백카운트용)
+  function backNine(r) {
+    return (r.scores || []).slice(9).reduce((s, v) => s + (Number(v) || 0), 0);
+  }
+
   // 정렬
-  if(currentResultSubTab==='np') recs.sort((a,b)=>a['Net_Score']-b['Net_Score']);
-  else if(currentResultSubTab==='str') recs.sort((a,b)=>a['합계']-b['합계']);
+  if(currentResultSubTab==='np') {
+    /* 1차: Net_Score 낮은 순
+       2차: 합산(Gross) 높은 순 — 재미 요소 (같은 Net에서 더 많이 친 사람 우선)
+       3차: 후반9홀 낮은 순 (백카운트) */
+    recs.sort((a, b) => {
+      if (a['Net_Score'] !== b['Net_Score']) return a['Net_Score'] - b['Net_Score'];
+      if (a['합계'] !== b['합계']) return b['합계'] - a['합계'];
+      return backNine(a) - backNine(b);
+    });
+  }
+  else if(currentResultSubTab==='str') {
+    /* 1차: 합산(Gross) 낮은 순
+       2차: 후반9홀 낮은 순 (백카운트) */
+    recs.sort((a, b) => {
+      if (a['합계'] !== b['합계']) return a['합계'] - b['합계'];
+      return backNine(a) - backNine(b);
+    });
+  }
   else if(currentResultSubTab==='title') {
     if(currentTitleSort==='b') recs.sort((a,b)=>b._b - a._b);
     else if(currentTitleSort==='p') recs.sort((a,b)=>b._p - a._p);
@@ -366,11 +387,14 @@ function renderResults() {
             </tr>
           </thead>
           <tbody>`;
-      /* 동점자 순위 계산: 같은 Net_Score면 동순위 */
-      let npRank = 1;
+      /* 순위 계산: 3차 기준(백카운트)까지 적용 후 실질적으로 같을 때만 동순위 */
       recs.forEach((r, i) => {
-        if (i > 0 && r['Net_Score'] !== recs[i-1]['Net_Score']) npRank = i + 1;
-        r._npRank = npRank;
+        if (i === 0) { r._npRank = 1; return; }
+        const p = recs[i-1];
+        const sameNet   = r['Net_Score'] === p['Net_Score'];
+        const sameGross = r['합계']      === p['합계'];
+        const sameBack  = backNine(r)    === backNine(p);
+        r._npRank = (sameNet && sameGross && sameBack) ? p._npRank : i + 1;
       });
       recs.forEach(r => {
         let lf = Number(r['Luck_Factor']) || 0;
