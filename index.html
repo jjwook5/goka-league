@@ -219,13 +219,15 @@ function renderStandings() {
   const startM = season ? Number(season['시작_대회번호']) : 0;
   const endM = season && season['종료_대회번호'] ? Number(season['종료_대회번호']) : 99999999;
   
-  const validRecs = DATA.records.filter(r => r['대회번호'] >= startM && r['대회번호'] <= endM);
-  
+  /* ★ 대회번호(날짜) 오름차순 정렬 → grossArr 마지막 = 최근 대회 */
+  const validRecs = DATA.records
+    .filter(r => r['대회번호'] >= startM && r['대회번호'] <= endM)
+    .sort((a, b) => a['대회번호'] - b['대회번호']);
+
   const ps = {};
   validRecs.forEach(r => {
     const key = r['전화번호'];
     if (!ps[key]) {
-      /* ★ 성명/닉네임은 항상 tb_Member 최신값 우선 */
       const mb = getMemberInfo(key);
       ps[key] = {
         성명:   mb ? mb['성명']          : r['성명'],
@@ -235,18 +237,24 @@ function renderStandings() {
     }
     if (r['합계'] > 0) ps[key].grossArr.push(r['합계']);
   });
-  
+
   let list = Object.values(ps)
     .filter(p => p.리그 === currentLeague && p.grossArr.length > 0)
     .map(p => {
-      p.참가 = p.grossArr.length;
+      p.참가      = p.grossArr.length;
       p.평균그로스 = Math.round(p.grossArr.reduce((a,b)=>a+b,0) / p.참가 * 10) / 10;
+      p.최근그로스 = p.grossArr[p.grossArr.length - 1]; /* 최근 대회 성적 */
       return p;
     });
     
+  /* 리그순위 정렬
+     1차: 평균타수 낮은 순
+     2차: 참가횟수 많은 순
+     3차: 최근대회 성적 좋은 순 (낮은 순) */
   list.sort((a, b) => {
-    if(a.평균그로스 === b.평균그로스) return b.참가 - a.참가;
-    return a.평균그로스 - b.평균그로스;
+    if (a.평균그로스 !== b.평균그로스) return a.평균그로스 - b.평균그로스;
+    if (a.참가      !== b.참가)      return b.참가 - a.참가;
+    return a.최근그로스 - b.최근그로스;
   });
   
   let html = `<select class="match-select" onchange="currentSeasonId=this.value; renderStandings();">${seasonOptions}</select>
