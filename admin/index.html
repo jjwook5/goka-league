@@ -1085,25 +1085,32 @@ function renderPhase4NP(records) {
      1차: Net_Score 낮은 순
      2차: 합산(Gross) 높은 순 (재미 요소)
      3차: 후반9홀 낮은 순 (백카운트) */
-  function adminBackNine(r) {
-    return [r.H10,r.H11,r.H12,r.H13,r.H14,r.H15,r.H16,r.H17,r.H18]
-      .reduce((s, v) => s + (Number(v) || 0), 0);
+  /* 정통 백카운트: 후반9홀 → 8홀 → ... → H18 단독 */
+  function adminBackCount(a, b) {
+    const holes = ['H10','H11','H12','H13','H14','H15','H16','H17','H18'];
+    for (let start = 0; start < 9; start++) {
+      const sumA = holes.slice(start).reduce((s,k) => s + (Number(a[k])||0), 0);
+      const sumB = holes.slice(start).reduce((s,k) => s + (Number(b[k])||0), 0);
+      if (sumA !== sumB) return sumA - sumB;
+    }
+    return 0;
   }
+
   const sorted = [...records].sort((a, b) => {
     const netDiff = Number(a['Net_Score']) - Number(b['Net_Score']);
     if (netDiff !== 0) return netDiff;
-    const grossDiff = Number(b['합계']) - Number(a['합계']); // 높은 순
+    const grossDiff = Number(b['합계']) - Number(a['합계']);
     if (grossDiff !== 0) return grossDiff;
-    return adminBackNine(a) - adminBackNine(b);
+    return adminBackCount(a, b);
   });
 
-  /* 순위 계산: 3차 기준까지 동일할 때만 동순위 */
+  /* 순위 계산: 모든 기준 동일할 때만 동순위 */
   sorted.forEach((r, i) => {
     if (i === 0) { r._rank = 1; return; }
     const p = sorted[i-1];
     const same = Number(r['Net_Score']) === Number(p['Net_Score'])
               && Number(r['합계'])      === Number(p['합계'])
-              && adminBackNine(r)       === adminBackNine(p);
+              && adminBackCount(r, p)   === 0;
     r._rank = same ? p._rank : i + 1;
   });
 

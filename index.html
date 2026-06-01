@@ -307,28 +307,39 @@ function renderResults() {
     return mb ? { ...r, 성명: mb['성명'], 닉네임: mb['닉네임'] || '' } : r;
   });
 
-  // 후반9홀 오버파 합계 (백카운트용)
-  function backNine(r) {
-    return (r.scores || []).slice(9).reduce((s, v) => s + (Number(v) || 0), 0);
+  /* ★ 정통 백카운트 비교 함수
+     후반9홀 합계 → 후반8홀(H11~H18) → 후반7홀 → ... → H18 단독
+     홀을 앞에서 하나씩 제거하며 합계가 다를 때까지 비교 */
+  function compareBackCount(a, b) {
+    const scA = a.scores || [];
+    const scB = b.scores || [];
+    for (let start = 9; start < 18; start++) {   // start=9: H10~H18, start=10: H11~H18 ...
+      const sumA = scA.slice(start).reduce((s, v) => s + (Number(v) || 0), 0);
+      const sumB = scB.slice(start).reduce((s, v) => s + (Number(v) || 0), 0);
+      if (sumA !== sumB) return sumA - sumB;
+    }
+    return 0; // 18홀 완전히 동일
   }
+  /* 백카운트 완전 동점 여부 */
+  function isBackCountTied(a, b) { return compareBackCount(a, b) === 0; }
 
   // 정렬
   if(currentResultSubTab==='np') {
     /* 1차: Net_Score 낮은 순
-       2차: 합산(Gross) 높은 순 — 재미 요소 (같은 Net에서 더 많이 친 사람 우선)
-       3차: 후반9홀 낮은 순 (백카운트) */
+       2차: 합산(Gross) 높은 순 — 재미 요소
+       3차: 백카운트 (후반9홀 → 8홀 → ... → H18) */
     recs.sort((a, b) => {
       if (a['Net_Score'] !== b['Net_Score']) return a['Net_Score'] - b['Net_Score'];
-      if (a['합계'] !== b['합계']) return b['합계'] - a['합계'];
-      return backNine(a) - backNine(b);
+      if (a['합계']      !== b['합계'])      return b['합계'] - a['합계'];
+      return compareBackCount(a, b);
     });
   }
   else if(currentResultSubTab==='str') {
     /* 1차: 합산(Gross) 낮은 순
-       2차: 후반9홀 낮은 순 (백카운트) */
+       2차: 백카운트 (후반9홀 → 8홀 → ... → H18) */
     recs.sort((a, b) => {
       if (a['합계'] !== b['합계']) return a['합계'] - b['합계'];
-      return backNine(a) - backNine(b);
+      return compareBackCount(a, b);
     });
   }
   else if(currentResultSubTab==='title') {
@@ -395,13 +406,13 @@ function renderResults() {
             </tr>
           </thead>
           <tbody>`;
-      /* 순위 계산: 3차 기준(백카운트)까지 적용 후 실질적으로 같을 때만 동순위 */
+      /* 순위 계산: Net_Score·합산·백카운트 전부 동일할 때만 동순위 */
       recs.forEach((r, i) => {
         if (i === 0) { r._npRank = 1; return; }
         const p = recs[i-1];
-        const sameNet   = r['Net_Score'] === p['Net_Score'];
-        const sameGross = r['합계']      === p['합계'];
-        const sameBack  = backNine(r)    === backNine(p);
+        const sameNet   = Number(r['Net_Score']) === Number(p['Net_Score']);
+        const sameGross = r['합계'] === p['합계'];
+        const sameBack  = isBackCountTied(r, p);
         r._npRank = (sameNet && sameGross && sameBack) ? p._npRank : i + 1;
       });
       recs.forEach(r => {
