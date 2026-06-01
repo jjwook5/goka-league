@@ -512,7 +512,7 @@ goka-league/                         ← GitHub 저장소 루트
 
 ### 8.1. 코드 수정 반영 프로세스
 
-1. `C:\Users\51\Desktop\goka-league\` 폴더에서 파일 수정
+1. `C:\Users\51\Naver MYBOX\07. Utility App\01. goka-league\` 폴더에서 파일 수정
 2. Git 커밋 & 푸시 → Vercel 자동 재배포 (약 30초)
 
 ```bash

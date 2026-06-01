@@ -21,7 +21,7 @@
 | `manifest-admin.json` | 관리자용 PWA | - |
 | `.claude/launch.json` | 로컬 미리보기 서버 (port 3344) | - |
 
-**로컬 경로:** `C:\Users\51\Desktop\goka-league\`  
+**로컬 경로:** `C:\Users\51\Naver MYBOX\07. Utility App\01. goka-league\`  
 **GitHub:** `jjwook5/goka-league` (main 브랜치)  
 **배포:** Vercel 자동 배포 — 커밋 후 약 30초  
 **회원 URL:** `golfriend.vercel.app`  
