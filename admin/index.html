@@ -1085,13 +1085,14 @@ function renderPhase4NP(records) {
      1차: Net_Score 낮은 순
      2차: 합산(Gross) 높은 순 (재미 요소)
      3차: 후반9홀 낮은 순 (백카운트) */
-  /* 정통 백카운트: 후반9홀 → 8홀 → ... → H18 단독 */
+  /* 백카운트: H18 단독 → H17 단독 → ... → H10 단독
+     마지막 홀부터 역순으로 홀별 단독 비교 */
   function adminBackCount(a, b) {
     const holes = ['H10','H11','H12','H13','H14','H15','H16','H17','H18'];
-    for (let start = 0; start < 9; start++) {
-      const sumA = holes.slice(start).reduce((s,k) => s + (Number(a[k])||0), 0);
-      const sumB = holes.slice(start).reduce((s,k) => s + (Number(b[k])||0), 0);
-      if (sumA !== sumB) return sumA - sumB;
+    for (let i = 8; i >= 0; i--) {   // i=8:H18, i=7:H17, ..., i=0:H10
+      const va = Number(a[holes[i]]) || 0;
+      const vb = Number(b[holes[i]]) || 0;
+      if (va !== vb) return va - vb;
     }
     return 0;
   }

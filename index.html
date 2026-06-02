@@ -307,18 +307,18 @@ function renderResults() {
     return mb ? { ...r, 성명: mb['성명'], 닉네임: mb['닉네임'] || '' } : r;
   });
 
-  /* ★ 정통 백카운트 비교 함수
-     후반9홀 합계 → 후반8홀(H11~H18) → 후반7홀 → ... → H18 단독
-     홀을 앞에서 하나씩 제거하며 합계가 다를 때까지 비교 */
+  /* ★ 백카운트 비교 함수
+     H18 단독 → H17 단독 → H16 단독 → ... → H10 단독
+     마지막 홀부터 역순으로 홀별 단독 비교 */
   function compareBackCount(a, b) {
     const scA = a.scores || [];
     const scB = b.scores || [];
-    for (let start = 9; start < 18; start++) {   // start=9: H10~H18, start=10: H11~H18 ...
-      const sumA = scA.slice(start).reduce((s, v) => s + (Number(v) || 0), 0);
-      const sumB = scB.slice(start).reduce((s, v) => s + (Number(v) || 0), 0);
-      if (sumA !== sumB) return sumA - sumB;
+    for (let i = 17; i >= 9; i--) {   // i=17:H18, i=16:H17, ..., i=9:H10
+      const va = Number(scA[i]) || 0;
+      const vb = Number(scB[i]) || 0;
+      if (va !== vb) return va - vb;
     }
-    return 0; // 18홀 완전히 동일
+    return 0; // 완전 동일
   }
   /* 백카운트 완전 동점 여부 */
   function isBackCountTied(a, b) { return compareBackCount(a, b) === 0; }
