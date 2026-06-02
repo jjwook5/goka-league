@@ -435,10 +435,18 @@ function renderResults() {
   }
   /* ─── 스트로크 ─── */
   else if(currentResultSubTab === 'str') {
-    html += `<div class="list-header"><span style="flex:0 0 32px;text-align:center">#</span><span style="flex:1">선수</span><span style="flex:0 0 44px;text-align:center">기록</span></div>`;
+    /* 순위 계산: 합계·백카운트 전부 동일할 때만 동순위 */
     recs.forEach((r, i) => {
-      let rCls = i===0?'gold':i===1?'silver':i===2?'bronze':'';
-      html += `<div class="row" onclick="openPlayerProfile('${r['전화번호']}')"><span class="rank ${rCls}">${i+1}</span>
+      if (i === 0) { r._strRank = 1; return; }
+      const p = recs[i-1];
+      const sameGross = r['합계'] === p['합계'];
+      const sameBack  = isBackCountTied(r, p);
+      r._strRank = (sameGross && sameBack) ? p._strRank : i + 1;
+    });
+    html += `<div class="list-header"><span style="flex:0 0 32px;text-align:center">#</span><span style="flex:1">선수</span><span style="flex:0 0 44px;text-align:center">기록</span></div>`;
+    recs.forEach(r => {
+      let rCls = r._strRank===1?'gold':r._strRank===2?'silver':r._strRank===3?'bronze':'';
+      html += `<div class="row" onclick="openPlayerProfile('${r['전화번호']}')"><span class="rank ${rCls}">${r._strRank}</span>
         <div style="flex:1"><div class="name">${esc(r.성명)}</div><div style="font-size:10px;color:#5a7f6a;">${r['소속리그']}</div></div>
         <span class="cell bold">${r['합계']}타</span>
       </div>`;
@@ -461,13 +469,20 @@ function renderResults() {
           </tr>
         </thead>
         <tbody>`;
+    /* 동점자 순위: 현재 정렬 기준 값이 동일하면 같은 순위 */
+    const titleKey = {b:'_b',p:'_p',bg:'_bg',d:'_d'}[currentTitleSort] || '_b';
     recs.forEach((r, i) => {
+      if (i === 0) { r._titleRank = 1; return; }
+      const p = recs[i-1];
+      r._titleRank = r[titleKey] === p[titleKey] ? p._titleRank : i + 1;
+    });
+    recs.forEach(r => {
       html += `<tr style="cursor:pointer;" onclick="openPlayerProfile('${r['전화번호']}')">
-        <td style="text-align:left; padding-left:8px; font-weight:700; color:#d4e4da;">${i+1}. ${esc(r.성명)}</td>
-        <td style="${currentTitleSort==='b'?'color:#3b82f6;font-weight:800;':''}${i===0&&currentTitleSort==='b'?'font-size:14px;':''}">${r._b}</td>
-        <td style="${currentTitleSort==='p'?'color:#22c55e;font-weight:800;':''}${i===0&&currentTitleSort==='p'?'font-size:14px;':''}">${r._p}</td>
-        <td style="${currentTitleSort==='bg'?'color:#eab308;font-weight:800;':''}${i===0&&currentTitleSort==='bg'?'font-size:14px;':''}">${r._bg}</td>
-        <td style="${currentTitleSort==='d'?'color:#ef4444;font-weight:800;':''}${i===0&&currentTitleSort==='d'?'font-size:14px;':''}">${r._d}</td>
+        <td style="text-align:left; padding-left:8px; font-weight:700; color:#d4e4da;">${r._titleRank}. ${esc(r.성명)}</td>
+        <td style="${currentTitleSort==='b'?'color:#3b82f6;font-weight:800;':''}${r._titleRank===1&&currentTitleSort==='b'?'font-size:14px;':''}">${r._b}</td>
+        <td style="${currentTitleSort==='p'?'color:#22c55e;font-weight:800;':''}${r._titleRank===1&&currentTitleSort==='p'?'font-size:14px;':''}">${r._p}</td>
+        <td style="${currentTitleSort==='bg'?'color:#eab308;font-weight:800;':''}${r._titleRank===1&&currentTitleSort==='bg'?'font-size:14px;':''}">${r._bg}</td>
+        <td style="${currentTitleSort==='d'?'color:#ef4444;font-weight:800;':''}${r._titleRank===1&&currentTitleSort==='d'?'font-size:14px;':''}">${r._d}</td>
       </tr>`;
     });
     html += `</tbody></table></div>`;

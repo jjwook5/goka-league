@@ -1165,11 +1165,18 @@ function applyPhase4TitleSort(stats) {
     });
   }
 
+  /* 동점자 순위: 현재 정렬 기준 값이 동일하면 같은 순위 */
+  stats.forEach((r, i) => {
+    if (i === 0) { r._titleRank = 1; return; }
+    const p = stats[i-1];
+    r._titleRank = r[key] === p[key] ? p._titleRank : i + 1;
+  });
+
   const tbody = document.getElementById('phase4-titleBody');
   tbody.innerHTML = '';
   stats.forEach(r => {
     tbody.innerHTML += `<tr>
-      <td style="text-align:left;padding-left:6px;font-weight:700;color:#d4e4da;">${r['성명']}</td>
+      <td style="text-align:left;padding-left:6px;font-weight:700;color:#d4e4da;">${r._titleRank}. ${r['성명']}</td>
       <td style="color:#3b82f6;font-weight:700;">${r._b}</td>
       <td style="color:#22c55e;">${r._p}</td>
       <td style="color:#eab308;">${r._bg}</td>
