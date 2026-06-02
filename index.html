@@ -329,8 +329,10 @@ function renderResults() {
        2차: 합산(Gross) 높은 순 — 재미 요소
        3차: 백카운트 (후반9홀 → 8홀 → ... → H18) */
     recs.sort((a, b) => {
-      if (a['Net_Score'] !== b['Net_Score']) return a['Net_Score'] - b['Net_Score'];
-      if (a['합계']      !== b['합계'])      return b['합계'] - a['합계'];
+      const netA = Number(a['Net_Score']), netB = Number(b['Net_Score']);
+      if (netA !== netB) return netA - netB;
+      const gA = Number(a['합계']), gB = Number(b['합계']);
+      if (gA !== gB) return gB - gA;
       return compareBackCount(a, b);
     });
   }
@@ -338,7 +340,8 @@ function renderResults() {
     /* 1차: 합산(Gross) 낮은 순
        2차: 백카운트 (후반9홀 → 8홀 → ... → H18) */
     recs.sort((a, b) => {
-      if (a['합계'] !== b['합계']) return a['합계'] - b['합계'];
+      const gA = Number(a['합계']), gB = Number(b['합계']);
+      if (gA !== gB) return gA - gB;
       return compareBackCount(a, b);
     });
   }
@@ -411,7 +414,7 @@ function renderResults() {
         if (i === 0) { r._npRank = 1; return; }
         const p = recs[i-1];
         const sameNet   = Number(r['Net_Score']) === Number(p['Net_Score']);
-        const sameGross = r['합계'] === p['합계'];
+        const sameGross = Number(r['합계']) === Number(p['합계']);
         const sameBack  = isBackCountTied(r, p);
         r._npRank = (sameNet && sameGross && sameBack) ? p._npRank : i + 1;
       });
