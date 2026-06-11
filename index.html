@@ -774,6 +774,41 @@ async function loadData() {
   }
 }
 loadData();
+
+/* ───────── 방문 기록 (MAU 측정용) ─────────
+   기기별 UUID를 localStorage에 저장하고 하루 1회만 visits에 기록.
+   고유 device_id 수로 DAU/WAU/MAU 추정. 실패해도 앱 동작에 영향 없음. */
+function recordVisit() {
+  try {
+    let deviceId = localStorage.getItem('goka_device_id');
+    if (!deviceId) {
+      deviceId = (crypto.randomUUID
+        ? crypto.randomUUID()
+        : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+            const r = Math.random() * 16 | 0;
+            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+          }));
+      localStorage.setItem('goka_device_id', deviceId);
+    }
+    /* 같은 날 재방문은 건너뜀 (테이블 증가 억제) */
+    const today = new Date().toISOString().slice(0, 10);
+    if (localStorage.getItem('goka_last_visit') === today) return;
+
+    fetch(`${SUPABASE_URL}/rest/v1/visits`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({ device_id: deviceId })
+    }).then(res => {
+      if (res.ok) localStorage.setItem('goka_last_visit', today);
+    }).catch(() => {});
+  } catch (e) { /* 무시 */ }
+}
+recordVisit();
 </script>
 </body>
 </html>
