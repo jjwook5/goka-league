@@ -1101,8 +1101,11 @@ async function renderPhase4Info() {
   if (status === '마감' || status === '완료') {
     resultArea.classList.remove('hidden');
     const records = await sbGet('tb_Record', `&대회번호=eq.${currentMatchId}&합계=gt.0&order=Net_Score.asc`);
-    renderPhase4NP(records);
-    renderPhase4Title(records);
+    /* 게스트는 청백전에만 — 신페리오·번외에서는 제외 */
+    const guestSet = new Set(globalData.members.filter(m => m['등급'] === '게스트').map(m => m['전화번호']));
+    const nonGuest = records.filter(r => !guestSet.has(r['전화번호']));
+    renderPhase4NP(nonGuest);
+    renderPhase4Title(nonGuest);
     renderPhase4Team(records);
     setPhase4SubTab(phase4SubTab);
   } else {
@@ -1225,9 +1228,10 @@ function applyPhase4TitleSort(stats) {
 }
 function sortPhase4Title(key) {
   phase4TitleSort = key;
-  /* 현재 렌더링된 tbody 데이터를 재집계할 records는 globalData에서 가져오기 */
+  /* 현재 렌더링된 tbody 데이터를 재집계할 records는 globalData에서 가져오기 (게스트 제외) */
+  const guestSet = new Set(globalData.members.filter(m => m['등급'] === '게스트').map(m => m['전화번호']));
   const records = globalData.records.filter(r =>
-    String(r['대회번호']) === String(currentMatchId));
+    String(r['대회번호']) === String(currentMatchId) && !guestSet.has(r['전화번호']));
   renderPhase4Title(records);
 }
 

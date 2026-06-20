@@ -227,6 +227,8 @@ function renderStandings() {
   const ps = {};
   validRecs.forEach(r => {
     const key = r['전화번호'];
+    const mbGuest = getMemberInfo(key);
+    if (mbGuest && mbGuest['등급'] === '게스트') return; /* 게스트는 리그순위 제외 */
     if (!ps[key]) {
       const mb = getMemberInfo(key);
       ps[key] = {
@@ -296,16 +298,20 @@ function renderResults() {
   const uniqueMatches = [...new Map(visibleMatches.map(m => [m['대회번호'], m])).values()].reverse();
   if(!currentMatchId && uniqueMatches.length > 0) currentMatchId = uniqueMatches[0]['대회번호'];
   
-  let recs = DATA.records.filter(r => r['대회번호'] === currentMatchId && r['합계'] > 0);
-  recs.forEach(r => {
+  let allRecs = DATA.records.filter(r => r['대회번호'] === currentMatchId && r['합계'] > 0);
+  allRecs.forEach(r => {
     const c = countScoreTypes(r.scores);
     r._b = c.birdies; r._p = c.pars; r._bg = c.bogeys; r._d = c.doubles;
   });
-  /* ★ 성명/닉네임을 tb_Member 최신값으로 덮어쓰기 — NP/스트로크/타이틀/청백팀 전체 적용 */
-  recs = recs.map(r => {
+  /* ★ 성명/닉네임 tb_Member 최신값 덮어쓰기 + 게스트 플래그 */
+  allRecs = allRecs.map(r => {
     const mb = getMemberInfo(r['전화번호']);
-    return mb ? { ...r, 성명: mb['성명'], 닉네임: mb['닉네임'] || '' } : r;
+    const isGuest = !!(mb && mb['등급'] === '게스트');
+    return mb ? { ...r, 성명: mb['성명'], 닉네임: mb['닉네임'] || '', _isGuest: isGuest }
+              : { ...r, _isGuest: false };
   });
+  /* ★ 게스트는 청백전에만 — 신페리오·스트로크·번외·통계에서는 제외 */
+  let recs = allRecs.filter(r => !r._isGuest);
 
   /* ★ 백카운트 비교 함수
      H18 단독 → H17 단독 → H16 단독 → ... → H10 단독
@@ -495,8 +501,8 @@ function renderResults() {
   else if(currentResultSubTab === 'team') {
     if(!isPublished) { html += lockHtml; }
     else {
-    const blueTeam = recs.filter(r => r['소속팀'] === '청팀').sort((a,b) => a['합계'] - b['합계']);
-    const whiteTeam = recs.filter(r => r['소속팀'] === '백팀').sort((a,b) => a['합계'] - b['합계']);
+    const blueTeam = allRecs.filter(r => r['소속팀'] === '청팀').sort((a,b) => a['합계'] - b['합계']);
+    const whiteTeam = allRecs.filter(r => r['소속팀'] === '백팀').sort((a,b) => a['합계'] - b['합계']);
     const blueTotal = blueTeam.reduce((s,r) => s + r['합계'], 0);
     const whiteTotal = whiteTeam.reduce((s,r) => s + r['합계'], 0);
     const blueWin = blueTotal < whiteTotal;
