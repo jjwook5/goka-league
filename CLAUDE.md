@@ -1,6 +1,6 @@
 # 고카리그 (GOKA LEAGUE) — Claude Code 브리핑
 
-> 상세 명세는 `GokaLeague_System_Specification.md` (Ver 1.2) 참조
+> 상세 명세는 `GokaLeague_System_Specification.md` (Ver 1.3) 참조
 
 ---
 
@@ -83,6 +83,12 @@ Luck_Factor     = round(NP_Handicap - (합계 - 기준타) × 0.8, 2)
 ### 성명/닉네임 표시 정책
 - **항상 tb_member 최신값 우선** (`getMemberInfo()` 헬퍼 사용)
 - tb_Record의 성명/닉네임은 스냅샷(과거 기록용)이며 표시에는 미사용
+
+### 게스트 처리 (Ver 1.3)
+- 게스트 = `등급='게스트'` + `소속리그=NULL` + 회원번호 `010-9000-XXXX`
+- **청백전에만 포함**, 리그순위·신페리오·스트로크·번외·통계에서는 제외
+- 판별: `getMemberInfo(전화번호).등급 === '게스트'` / tb_Record 컬럼 추가 없음
+- 등급 선택지: 일반 / 스텝(용도 미정) / 게스트
 
 ---
 
