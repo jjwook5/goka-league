@@ -266,7 +266,7 @@
           <select id="nm_league" class="form-select"><option value="1부">1부</option><option value="2부">2부</option><option value="3부">3부</option></select>
         </div>
         <div class="form-group" style="flex:1"><label class="form-label">등급</label>
-          <select id="nm_grade" class="form-select"><option value="일반">일반</option><option value="스텝">스텝</option></select>
+          <select id="nm_grade" class="form-select" onchange="onGradeChange()"><option value="일반">일반</option><option value="스텝">스텝</option><option value="게스트">게스트</option></select>
         </div>
       </div>
       <div style="display:flex;gap:8px;margin-top:4px;">
@@ -285,7 +285,7 @@
           <select id="em_league" class="form-select"><option value="1부">1부</option><option value="2부">2부</option><option value="3부">3부</option></select>
         </div>
         <div class="form-group" style="flex:1"><label class="form-label">등급</label>
-          <select id="em_grade" class="form-select"><option value="선수">선수</option><option value="스텝">스텝</option><option value="매니저">매니저</option></select>
+          <select id="em_grade" class="form-select"><option value="일반">일반</option><option value="스텝">스텝</option><option value="게스트">게스트</option></select>
         </div>
       </div>
       <div style="display:flex;gap:8px;margin-top:4px;">
@@ -797,13 +797,45 @@ function renderMemberList() {
 }
 
 function calcNextMemberSeq() {
-  /* 기존 전화번호(회원번호) 뒷4자리 중 최댓값 + 1 */
-  const nums = globalData.members.map(m => {
-    const parts = (m['전화번호'] || '').split('-');
-    return parts.length === 3 ? (parseInt(parts[2]) || 0) : 0;
-  });
+  /* 일반 회원(1000/2000 번호대) 뒷4자리 중 최댓값 + 1 — 게스트(9000)는 제외 */
+  const nums = globalData.members
+    .filter(m => { const p = (m['전화번호'] || '').split('-'); return p[1] === '1000' || p[1] === '2000'; })
+    .map(m => parseInt((m['전화번호'] || '').split('-')[2]) || 0);
   const maxNum = nums.length > 0 ? Math.max(...nums) : 0;
   return String(maxNum + 1).padStart(4, '0');
+}
+
+function calcNextGuestSeq() {
+  /* 게스트 전용 번호대(9000) 뒷4자리 중 최댓값 + 1 */
+  const nums = globalData.members
+    .filter(m => (m['전화번호'] || '').split('-')[1] === '9000')
+    .map(m => parseInt((m['전화번호'] || '').split('-')[2]) || 0);
+  const maxNum = nums.length > 0 ? Math.max(...nums) : 0;
+  return String(maxNum + 1).padStart(4, '0');
+}
+
+/* 등급 변경 시: 게스트면 9000대 채번 + 성별·소속리그 비활성 */
+function onGradeChange() {
+  const grade     = document.getElementById('nm_grade').value;
+  const idInput   = document.getElementById('nm_memberid');
+  const leagueSel = document.getElementById('nm_league');
+  const gM = document.getElementById('nm_gender_m');
+  const gF = document.getElementById('nm_gender_f');
+  if (grade === '게스트') {
+    const seq = calcNextGuestSeq();
+    idInput.value = '010-9000-' + seq;
+    idInput.dataset.seq = seq;
+    leagueSel.disabled = true;
+    gM.disabled = true; gF.disabled = true;
+    gM.classList.remove('active'); gF.classList.remove('active');
+    nmGender = '게스트';
+  } else {
+    leagueSel.disabled = false;
+    gM.disabled = false; gF.disabled = false;
+    nmGender = '';
+    idInput.value = '← 성별을 먼저 선택하세요';
+    idInput.dataset.seq = calcNextMemberSeq();
+  }
 }
 
 function selectGender(g) {
@@ -825,6 +857,11 @@ function toggleNewMemberForm(show) {
     nmGender = '';
     document.getElementById('nm_gender_m').classList.remove('active');
     document.getElementById('nm_gender_f').classList.remove('active');
+    /* 등급·소속리그·성별 활성 상태 초기화 (직전 게스트 선택 잔존 방지) */
+    document.getElementById('nm_grade').value = '일반';
+    document.getElementById('nm_league').disabled = false;
+    document.getElementById('nm_gender_m').disabled = false;
+    document.getElementById('nm_gender_f').disabled = false;
     /* 채번 계산 */
     const seq = calcNextMemberSeq();
     const input = document.getElementById('nm_memberid');
@@ -842,7 +879,7 @@ function openEditMember(phone) {
   document.getElementById('em_name').value    = m['성명'];
   document.getElementById('em_nick').value    = m['닉네임'] || '';
   document.getElementById('em_league').value  = m['소속리그'] || '1부';
-  document.getElementById('em_grade').value   = m['등급'] || '선수';
+  document.getElementById('em_grade').value   = m['등급'] || '일반';
   document.getElementById('editMemberForm').classList.remove('hidden');
   document.getElementById('newMemberForm').classList.add('hidden');
   document.getElementById('editMemberForm').scrollIntoView({ behavior: 'smooth' });
@@ -860,11 +897,12 @@ async function submitNewMember() {
   try {
     const maxRes = await sbGet('tb_member', '&select=순번&order=순번.desc&limit=1');
     const lastSeq = maxRes.length > 0 ? (maxRes[0]['순번'] || 0) : 0;
+    const grade = document.getElementById('nm_grade').value;
     await sbPost('tb_member', [{
       순번: lastSeq + 1, 전화번호: phone, 성명: name,
       닉네임: document.getElementById('nm_nick').value.trim() || null,
-      소속리그: document.getElementById('nm_league').value,
-      등급: document.getElementById('nm_grade').value,
+      소속리그: grade === '게스트' ? null : document.getElementById('nm_league').value,
+      등급: grade,
       활동상태: '활동중'
     }]);
     hideLoading();
