@@ -570,6 +570,14 @@ function toggleTeam(g, phone) { const p = assignedGroups[g].find(p => p.phone ==
 async function submitPhase1() {
   const allPlayers = Object.values(assignedGroups).flat();
   if (allPlayers.length === 0) return alert('조 편성을 진행해 주세요.');
+  /* ★ 가드: 이미 스코어가 입력된 대회를 수정모드로 재확정하면 전체 삭제됨 → 경고 */
+  if (isEditMode) {
+    const existing = await sbGet('tb_Record', `&대회번호=eq.${currentMatchId}`);
+    const hasScores = existing.some(r => Number(r['합계']) > 0);
+    if (hasScores) {
+      if (!confirm('⚠️ 이미 스코어가 입력된 대회입니다.\n\n명단을 다시 확정하면 모든 홀 스코어와\n신페리오 정산 결과(합계·NP·Net·Luck)가\n전부 삭제됩니다.\n\n정말 진행하시겠습니까?')) return;
+    }
+  }
   showLoading(isEditMode ? '조편성 수정사항 덮어쓰는 중...' : '새 대회 정보 등록 중...');
   try {
     if (isEditMode) {
@@ -624,6 +632,12 @@ function renderMappingUI() {
 }
 
 async function submitPhase2() {
+  /* ★ 가드: 스코어 입력된 대회의 코스를 바꾸면 신페리오 제외홀 매핑이 어긋남 → 경고 */
+  const existing = await sbGet('tb_Record', `&대회번호=eq.${currentMatchId}`);
+  const hasScores = existing.some(r => Number(r['합계']) > 0);
+  if (hasScores) {
+    if (!confirm('⚠️ 이미 스코어가 입력된 대회입니다.\n\n전반/후반 코스를 변경하면 신페리오 제외홀\n매핑이 달라져 재정산이 필요합니다.\n(홀 스코어 자체는 유지됩니다)\n\n계속하시겠습니까?')) return;
+  }
   showLoading('코스 매핑 저장 중...');
   try {
     await Promise.all(Object.keys(assignedGroups).map(g =>
