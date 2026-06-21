@@ -478,7 +478,18 @@ async function loadAdminInitData() {
       selector.appendChild(opt);
     });
     // 이전 선택 복원 (마감/공개 처리 후에도 선택 유지)
-    if (prevMatchId) selector.value = String(prevMatchId);
+    if (prevMatchId) {
+      selector.value = String(prevMatchId);
+    } else {
+      /* ★ 세션 자동복원: 새로고침·재방문 시 마지막 작업 대회를 자동 선택 (완료된 대회는 제외) */
+      const saved = localStorage.getItem('goka_admin_lastMatch');
+      if (saved && activeMatches.some(m => String(m.matchId) === saved)) {
+        selector.value = saved;
+        onSelectMatchSession(saved, true);   // silent 복원 (alert 억제)
+      } else if (saved) {
+        localStorage.removeItem('goka_admin_lastMatch');  // 완료/삭제된 대회면 정리
+      }
+    }
 
     hideLoading();
   } catch(err) { hideLoading(); alert('데이터 로딩 실패: ' + err.message); }
@@ -487,9 +498,25 @@ async function loadAdminInitData() {
 /* ════════════════════════════════════════════════════
    대회관리 — 기존 기능 유지
    ════════════════════════════════════════════════════ */
-function onSelectMatchSession(val) {
+/* 작업 대상 대회 미선택 시 fallback — 진행중 대회 목록 안내 + 드롭다운 유도 */
+function ensureMatchSelected() {
+  if (currentMatchId) return true;
+  const n = (activeMatches || []).length;
+  if (n === 0) {
+    alert('진행중인 대회가 없습니다.\n상단 [+ 새 대회 생성하기]로 대회를 먼저 만드세요.');
+  } else {
+    const list = activeMatches.map((m, i) => `  ${i + 1}. ${m.matchName}`).join('\n');
+    alert(`작업 대상 대회가 선택되지 않았습니다.\n(세션이 끊겼을 수 있습니다)\n\n상단 [작업할 대회 선택]에서 아래 대회를 고르세요:\n\n${list}`);
+    const sel = document.getElementById('sessionMatchSelector');
+    if (sel) sel.focus();
+  }
+  return false;
+}
+
+function onSelectMatchSession(val, silent) {
   if (val === 'NEW') {
     isEditMode = false; currentMatchId = null; currentVenue = '';
+    localStorage.removeItem('goka_admin_lastMatch');   /* 자동복원 대상 해제 */
     document.getElementById('matchName').value = ''; document.getElementById('matchDate').value = '';
     document.getElementById('btnSaveRoster').innerText = '[1단계] 명단 확정 및 DB 적재';
     goToStepA(); switchPhaseTab('phase1');
@@ -498,6 +525,7 @@ function onSelectMatchSession(val) {
     const matched = activeMatches.find(m => String(m.matchId) === String(val));
     if (matched) {
       currentMatchId = matched.matchId; currentVenue = matched.venue;
+      localStorage.setItem('goka_admin_lastMatch', String(currentMatchId));   /* 세션 자동복원용 */
       const matchRecords = globalData.records.filter(r => r['대회번호'] === currentMatchId);
       assignedGroups = {};
       const totalPlayers = matchRecords.length || 12;
@@ -508,7 +536,7 @@ function onSelectMatchSession(val) {
         assignedGroups[g].push({ phone: r['전화번호'], name: r['성명'], nickname: r['닉네임'], league: r['소속리그'], group: g, team: r['소속팀'] });
       });
       document.getElementById('btnSaveRoster').innerText = '🔄 조편성 수정내역 덮어쓰기';
-      alert('대회가 연결되었습니다.\n조편성(1단계)을 수정하거나, 현장매핑(2단계)으로 바로 넘어갈 수 있습니다.');
+      if (!silent) alert('대회가 연결되었습니다.\n조편성(1단계)을 수정하거나, 현장매핑(2단계)으로 바로 넘어갈 수 있습니다.');
       goToStepB(); switchPhaseTab('phase1');
     }
   }
@@ -520,6 +548,7 @@ function goToStepB() {
     assignedGroups = {}; for (let i = 1; i <= (pCount/4); i++) assignedGroups[i+'조'] = [];
     currentMatchId = Number(document.getElementById('matchDate').value.replace(/-/g, ''));
     currentVenue = document.getElementById('matchVenue').value;
+    if (currentMatchId) localStorage.setItem('goka_admin_lastMatch', String(currentMatchId));   /* 세션 자동복원용 */
   }
   document.getElementById('phase1-stepA').classList.add('hidden');
   document.getElementById('phase1-stepB').classList.remove('hidden');
@@ -632,6 +661,7 @@ function renderMappingUI() {
 }
 
 async function submitPhase2() {
+  if (!ensureMatchSelected()) return;
   /* ★ 가드: 스코어 입력된 대회의 코스를 바꾸면 신페리오 제외홀 매핑이 어긋남 → 경고 */
   const existing = await sbGet('tb_Record', `&대회번호=eq.${currentMatchId}`);
   const hasScores = existing.some(r => Number(r['합계']) > 0);
@@ -708,7 +738,7 @@ function previewScores() {
 }
 
 async function submitPhase3() {
-  if (!currentMatchId) return alert('상단에서 대회를 선택하세요.');
+  if (!ensureMatchSelected()) return;
   if (!confirm('점수를 임시 저장합니다. 계속하시겠습니까?')) return;
   let jsonScores; try { jsonScores = JSON.parse(document.getElementById('jsonInput').value); } catch(e) { return alert('JSON 형식 오류'); }
   showLoading('스코어 저장 중...');
@@ -735,7 +765,7 @@ async function submitPhase3() {
 }
 
 async function drawExcludeHoles() {
-  if (!currentMatchId) return alert('상단에서 대회를 선택하세요.');
+  if (!ensureMatchSelected()) return;
 
   // 전원 스코어 입력 여부 확인 (합계 >= 1)
   showLoading('스코어 입력 현황 확인 중...');
@@ -747,7 +777,14 @@ async function drawExcludeHoles() {
     return;
   }
 
-  if (!confirm('제외홀을 무작위 추첨하고 신페리오 정산을 실행합니다.\n계속하시겠습니까?')) return;
+  /* ★ 가드: 이미 추첨·정산된 대회를 재추첨하면 제외홀이 새로 뽑혀 순위가 바뀜 */
+  const epsCheck = globalData.matchEpisodes.filter(m => m['대회번호'] === currentMatchId);
+  const alreadyDrawn = epsCheck.some(ep => ep['제외홀'] && String(ep['제외홀']).trim() !== '');
+  if (alreadyDrawn) {
+    if (!confirm('⚠️ 이미 제외홀이 추첨되어 정산이 완료된 대회입니다.\n\n다시 추첨하면 제외홀이 새로 뽑히고\n신페리오 순위가 바뀝니다.\n\n정말 재추첨하시겠습니까?')) return;
+  } else {
+    if (!confirm('제외홀을 무작위 추첨하고 신페리오 정산을 실행합니다.\n계속하시겠습니까?')) return;
+  }
   showLoading('🎲 제외홀 추첨 및 정산 중...');
   try {
     const episodes = globalData.matchEpisodes.filter(m => m['대회번호'] === currentMatchId);
@@ -1283,7 +1320,7 @@ function renderPhase4Team(records) {
 }
 
 async function submitClose() {
-  if (!currentMatchId) return alert('상단에서 대회를 선택하세요.');
+  if (!ensureMatchSelected()) return;
   if (!confirm('대회를 마감하시겠습니까?\n\n신페리오 결과는 관리자만 볼 수 있고\n회원 화면에는 그로스 결과만 공개됩니다.')) return;
   showLoading('마감 처리 중...');
   try {
@@ -1296,7 +1333,7 @@ async function submitClose() {
 }
 
 async function submitPublish() {
-  if (!currentMatchId) return alert('상단에서 대회를 선택하세요.');
+  if (!ensureMatchSelected()) return;
   if (!confirm('신페리오 결과를 회원들에게 공개하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.')) return;
   showLoading('결과 공개 중...');
   try {
