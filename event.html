@@ -95,7 +95,7 @@ async function load() {
     STATUS = (eps[0] && eps[0]['완료구분']) || '진행중';
     renderLive();
     renderFinal();
-    document.getElementById('v-award').innerHTML = soonHtml('개인시상은 준비 중입니다', '메달리스트 · 신페 · 버디왕 · 니어리스트');
+    renderAward();
   } catch(e) {
     document.getElementById('v-live').innerHTML = `<div class="empty"><div class="big">⚠️</div>데이터를 불러오지 못했습니다.<br>잠시 후 새로고침 해주세요.</div>`;
   }
@@ -216,6 +216,46 @@ function toggle(name) {
 function soonHtml(title, sub) {
   return `<div class="soon"><div class="big">🔒</div><b style="color:#e8d5a3;">${title}</b><br><span style="font-size:12px;">${sub}</span></div>`;
 }
+function teamBadge(team) {
+  const c = TEAM_COLORS[team];
+  return c ? `<span style="display:inline-block;width:17px;height:17px;border-radius:4px;background:${c[1]};color:${c[2]};font-size:9px;text-align:center;line-height:17px;font-weight:800;">${team[0]}</span>` : '';
+}
+function awardRow(i, nk, team, val, gd) {
+  const medal = i<3 ? ['🥇','🥈','🥉'][i] : `<span style="color:#5a7f6a;">${i+1}</span>`;
+  const gb = gd ? `<span style="font-size:9px;color:${gd==='여'?'#f0a0a0':'#9fc4ef'};margin-left:5px;">${gd}</span>` : '';
+  return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid #14301e;font-size:13px;">
+    <span style="width:22px;text-align:center;">${medal}</span>${teamBadge(team)}
+    <span style="flex:1;color:#d4e4da;">${esc(nk)}${gb}</span>
+    <span style="font-weight:700;color:#e8d5a3;">${val}</span></div>`;
+}
+function awardSection(title, rows) {
+  return `<div style="margin-bottom:16px;"><div style="font-size:13px;color:#e8d5a3;font-weight:700;margin-bottom:6px;padding-left:2px;">${title}</div>
+    <div class="tcard" style="border-left:none;padding:2px 4px;">${rows.join('')}</div></div>`;
+}
+function renderAward() {
+  const el = document.getElementById('v-award');
+  if (STATUS !== '완료') { el.innerHTML = soonHtml('개인시상은 시상식에서 공개됩니다', '메달리스트 · 신페 · 버디왕 · 니어리스트'); return; }
+  const played = RECORDS.filter(r => Number(r['합계']) > 0);
+  if (played.length === 0) { el.innerHTML = soonHtml('집계 중입니다', ''); return; }
+
+  const byGross  = [...played].sort((a,b)=>Number(a['합계'])-Number(b['합계']));
+  const byNet    = [...played].sort((a,b)=>Number(a['Net_Score'])-Number(b['Net_Score']));
+  const byBirdie = played.map(r=>({r, b:countBirdies(r)})).filter(x=>x.b>0).sort((a,b)=>b.b-a.b);
+
+  let html = `<div class="hint">부문별 개인 순위 · 상위 5명</div>`;
+  html += awardSection('🏅 메달리스트 (그로스)',
+    byGross.slice(0,5).map((r,i)=>awardRow(i, nick(r['전화번호']), r['소속팀'], Number(r['합계'])+'타')));
+  html += awardSection('🎯 신페리오 (Net)',
+    byNet.slice(0,5).map((r,i)=>awardRow(i, nick(r['전화번호']), r['소속팀'], Number(r['Net_Score']).toFixed(1), gender(r['전화번호']))));
+  html += awardSection('🐦 버디왕',
+    byBirdie.length ? byBirdie.slice(0,5).map((x,i)=>awardRow(i, nick(x.r['전화번호']), x.r['소속팀'], x.b+'개'))
+                    : [`<div style="padding:14px;text-align:center;color:#5a7f6a;font-size:12px;">버디 기록 없음</div>`]);
+  html += NEAREST.length
+    ? awardSection('🚩 니어리스트', NEAREST.map((n,i)=>awardRow(i, n.nick||'', n.team, '니어')))
+    : `<div style="margin-bottom:16px;"><div style="font-size:13px;color:#e8d5a3;font-weight:700;margin-bottom:6px;">🚩 니어리스트</div><div class="tcard" style="border-left:none;padding:14px;text-align:center;color:#5a7f6a;font-size:12px;">니어리스트 결과 미입력</div></div>`;
+  el.innerHTML = html;
+}
+
 function showTab(w) {
   ['live','final','award'].forEach(k => {
     document.getElementById('v-'+k).style.display = k===w ? 'block' : 'none';
