@@ -218,41 +218,79 @@ function soonHtml(title, sub) {
 }
 function teamBadge(team) {
   const c = TEAM_COLORS[team];
-  return c ? `<span style="display:inline-block;width:17px;height:17px;border-radius:4px;background:${c[1]};color:${c[2]};font-size:9px;text-align:center;line-height:17px;font-weight:800;">${team[0]}</span>` : '';
+  return c ? `<span style="display:inline-block;width:17px;height:17px;border-radius:4px;background:${c[1]};color:${c[2]};font-size:9px;text-align:center;line-height:17px;font-weight:800;vertical-align:middle;">${team[0]}</span>` : '';
 }
-function awardRow(i, nk, team, val, gd) {
-  const medal = i<3 ? ['🥇','🥈','🥉'][i] : `<span style="color:#5a7f6a;">${i+1}</span>`;
-  const gb = gd ? `<span style="font-size:9px;color:${gd==='여'?'#f0a0a0':'#9fc4ef'};margin-left:5px;">${gd}</span>` : '';
-  return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid #14301e;font-size:13px;">
-    <span style="width:22px;text-align:center;">${medal}</span>${teamBadge(team)}
-    <span style="flex:1;color:#d4e4da;">${esc(nk)}${gb}</span>
-    <span style="font-weight:700;color:#e8d5a3;">${val}</span></div>`;
+function compareBackAward(a, b) {
+  for (let i = 18; i >= 10; i--) { const va=Number(a['H'+i])||0, vb=Number(b['H'+i])||0; if (va!==vb) return va-vb; }
+  return 0;
 }
-function awardSection(title, rows) {
-  return `<div style="margin-bottom:16px;"><div style="font-size:13px;color:#e8d5a3;font-weight:700;margin-bottom:6px;padding-left:2px;">${title}</div>
-    <div class="tcard" style="border-left:none;padding:2px 4px;">${rows.join('')}</div></div>`;
+function countTypes(r) {
+  let b=0,p=0,bg=0,d=0;
+  for (let i=1;i<=18;i++){ const s=Number(r['H'+i]); if(r['H'+i]!=null&&!isNaN(s)){ if(s<0)b++; else if(s===0)p++; else if(s===1)bg++; else d++; } }
+  return {b,p,bg,d};
+}
+function rankColor(rk){ return rk===1?'#e8d5a3':rk===2?'#c0c0c0':rk===3?'#b87333':'#5a7f6a'; }
+function nameCell(r) {
+  const g = gender(r['전화번호']);
+  const gb = `<span style="font-size:9px;color:${g==='여'?'#f0a0a0':'#9fc4ef'};margin-left:4px;">${g}</span>`;
+  return `${teamBadge(r['소속팀'])} <span style="color:#d4e4da;">${esc(nick(r['전화번호']))}</span>${gb}`;
+}
+let AWARD_SUB = 'np';
+
+function awardNP(played) {
+  const rows = [...played].sort((a,b)=>{
+    const n=Number(a['Net_Score'])-Number(b['Net_Score']); if(n)return n;
+    const g=Number(b['합계'])-Number(a['합계']); if(g)return g;
+    return compareBackAward(a,b);
+  });
+  rows.forEach((r,i)=>{ if(i===0){r._rk=1;return;} const p=rows[i-1];
+    const same=Number(r['Net_Score'])===Number(p['Net_Score'])&&Number(r['합계'])===Number(p['합계'])&&compareBackAward(r,p)===0;
+    r._rk=same?p._rk:i+1; });
+  const body=rows.map(r=>{
+    const lf=Number(r['Luck_Factor'])||0; const lc=lf>0?'#22c55e':lf<0?'#ef4444':'#8faa97';
+    return `<tr style="font-size:12px;border-top:1px solid #14301e;">
+      <td style="color:${rankColor(r._rk)};font-weight:800;text-align:center;">${r._rk}</td>
+      <td style="text-align:left;padding:7px 4px;">${nameCell(r)}</td>
+      <td style="text-align:center;">${Number(r['합계'])}</td>
+      <td style="text-align:center;color:#e8d5a3;font-weight:700;">${Number(r['Net_Score']).toFixed(1)}</td>
+      <td style="text-align:center;color:#8faa97;">${Number(r['NP_Handicap']).toFixed(1)}</td>
+      <td style="text-align:center;color:${lc};">${lf>0?'+':''}${lf.toFixed(1)}</td></tr>`;
+  }).join('');
+  return `<table style="width:100%;border-collapse:collapse;"><thead><tr style="color:#8faa97;font-size:10px;">
+    <th style="width:24px;">#</th><th style="text-align:left;">선수</th><th>합산</th><th>Net</th><th>HDCP</th><th>Luck</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+function awardStroke(played) {
+  const rows=[...played].sort((a,b)=>{const g=Number(a['합계'])-Number(b['합계']);if(g)return g;return compareBackAward(a,b);});
+  rows.forEach((r,i)=>{if(i===0){r._sk=1;return;}const p=rows[i-1];const same=Number(r['합계'])===Number(p['합계'])&&compareBackAward(r,p)===0;r._sk=same?p._sk:i+1;});
+  const body=rows.map(r=>`<tr style="font-size:12px;border-top:1px solid #14301e;">
+    <td style="color:${rankColor(r._sk)};font-weight:800;text-align:center;">${r._sk}</td>
+    <td style="text-align:left;padding:7px 4px;">${nameCell(r)}</td>
+    <td style="text-align:center;color:#e8d5a3;font-weight:700;">${Number(r['합계'])}타</td></tr>`).join('');
+  return `<table style="width:100%;border-collapse:collapse;"><thead><tr style="color:#8faa97;font-size:10px;">
+    <th style="width:24px;">#</th><th style="text-align:left;">선수</th><th>그로스</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+function awardTitle(played) {
+  const rows=played.map(r=>({r,...countTypes(r)})).sort((a,b)=>b.b-a.b);
+  const body=rows.map((x,i)=>`<tr style="font-size:12px;border-top:1px solid #14301e;">
+    <td style="text-align:left;padding:7px 4px;">${i+1}. ${nameCell(x.r)}</td>
+    <td style="text-align:center;color:#3b82f6;font-weight:700;">${x.b}</td>
+    <td style="text-align:center;color:#22c55e;">${x.p}</td>
+    <td style="text-align:center;color:#eab308;">${x.bg}</td>
+    <td style="text-align:center;color:#ef4444;">${x.d}</td></tr>`).join('');
+  return `<table style="width:100%;border-collapse:collapse;"><thead><tr style="color:#8faa97;font-size:10px;">
+    <th style="text-align:left;">선수</th><th>🐦버디</th><th>파</th><th>보기</th><th>더블+</th></tr></thead><tbody>${body}</tbody></table>`;
 }
 function renderAward() {
   const el = document.getElementById('v-award');
-  if (STATUS !== '완료') { el.innerHTML = soonHtml('개인시상은 시상식에서 공개됩니다', '메달리스트 · 신페 · 버디왕 · 니어리스트'); return; }
+  if (STATUS !== '완료') { el.innerHTML = soonHtml('개인시상은 시상식에서 공개됩니다', '신페리오 · 스트로크 · 번외타이틀'); return; }
   const played = RECORDS.filter(r => Number(r['합계']) > 0);
   if (played.length === 0) { el.innerHTML = soonHtml('집계 중입니다', ''); return; }
-
-  const byGross  = [...played].sort((a,b)=>Number(a['합계'])-Number(b['합계']));
-  const byNet    = [...played].sort((a,b)=>Number(a['Net_Score'])-Number(b['Net_Score']));
-  const byBirdie = played.map(r=>({r, b:countBirdies(r)})).filter(x=>x.b>0).sort((a,b)=>b.b-a.b);
-
-  let html = `<div class="hint">부문별 개인 순위 · 상위 5명</div>`;
-  html += awardSection('🏅 메달리스트 (그로스)',
-    byGross.slice(0,5).map((r,i)=>awardRow(i, nick(r['전화번호']), r['소속팀'], Number(r['합계'])+'타')));
-  html += awardSection('🎯 신페리오 (Net)',
-    byNet.slice(0,5).map((r,i)=>awardRow(i, nick(r['전화번호']), r['소속팀'], Number(r['Net_Score']).toFixed(1), gender(r['전화번호']))));
-  html += awardSection('🐦 버디왕',
-    byBirdie.length ? byBirdie.slice(0,5).map((x,i)=>awardRow(i, nick(x.r['전화번호']), x.r['소속팀'], x.b+'개'))
-                    : [`<div style="padding:14px;text-align:center;color:#5a7f6a;font-size:12px;">버디 기록 없음</div>`]);
-  html += NEAREST.length
-    ? awardSection('🚩 니어리스트', NEAREST.map((n,i)=>awardRow(i, n.nick||'', n.team, '니어')))
-    : `<div style="margin-bottom:16px;"><div style="font-size:13px;color:#e8d5a3;font-weight:700;margin-bottom:6px;">🚩 니어리스트</div><div class="tcard" style="border-left:none;padding:14px;text-align:center;color:#5a7f6a;font-size:12px;">니어리스트 결과 미입력</div></div>`;
+  const subs=[['np','🎯 신페리오'],['str','⛳ 스트로크'],['title','🏅 번외타이틀']];
+  let html=`<div style="display:flex;gap:5px;margin-bottom:12px;">`+
+    subs.map(([k,l])=>`<button onclick="AWARD_SUB='${k}';renderAward();" style="flex:1;border:none;border-radius:8px;padding:8px 4px;font-size:11px;font-weight:700;cursor:pointer;background:${AWARD_SUB===k?'#2d5a3d':'#0f2a1c'};color:${AWARD_SUB===k?'#e8d5a3':'#8faa97'};white-space:nowrap;">${l}</button>`).join('')+`</div>`;
+  html+=`<div class="tcard" style="border-left:none;padding:6px 10px 10px;">`;
+  html+= AWARD_SUB==='np' ? awardNP(played) : AWARD_SUB==='str' ? awardStroke(played) : awardTitle(played);
+  html+=`</div>`;
   el.innerHTML = html;
 }
 
