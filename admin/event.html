@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>정모 관리자 · 제1회 고카 정모</title>
+<link rel="manifest" href="../manifest-admin.json">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { font-family:'Noto Sans KR',-apple-system,sans-serif; background:#0a1f14; color:#d4e4da; min-height:100vh; padding-bottom:60px; font-size:14px; }
+  .wrap { max-width:520px; margin:0 auto; padding:0 12px; }
+  .hdr { display:flex; align-items:center; justify-content:space-between; padding:16px 0 8px; }
+  .hdr h1 { font-size:18px; color:#e8d5a3; font-weight:800; }
+  .hdr .sub { font-size:10px; color:#5a7f6a; letter-spacing:1px; }
+  .hdr a { color:#8faa97; text-decoration:none; font-size:12px; border:1px solid #1e3a2a; border-radius:8px; padding:5px 9px; }
+
+  .status { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:8px 0 12px; }
+  .st { background:#12321f; border:1px solid #1e3a2a; border-radius:9px; padding:8px 4px; text-align:center; }
+  .st .k { font-size:9px; color:#5a7f6a; }
+  .st .v { font-size:14px; font-weight:800; color:#e8d5a3; margin-top:2px; }
+
+  .tabs { display:flex; gap:4px; background:#0f2a1c; border-radius:10px; padding:4px; margin-bottom:14px; }
+  .tab { flex:1; border:none; border-radius:7px; padding:9px 2px; font-size:11px; font-weight:700; cursor:pointer; background:transparent; color:#8faa97; white-space:nowrap; }
+  .tab.active { background:#2d5a3d; color:#e8d5a3; }
+
+  .card { background:#12321f; border:1px solid #1e3a2a; border-radius:12px; padding:13px; margin-bottom:11px; }
+  .card h2 { font-size:14px; color:#e8d5a3; margin-bottom:4px; }
+  .card .desc { font-size:11px; color:#6b8f77; line-height:1.55; margin-bottom:10px; }
+
+  .btn { border:none; border-radius:9px; padding:11px 14px; font-size:13px; font-weight:700; cursor:pointer; background:#2d5a3d; color:#e8d5a3; width:100%; }
+  .btn:disabled { opacity:.45; cursor:not-allowed; }
+  .btn.sec  { background:#1a3a26; color:#9fc4b0; }
+  .btn.warn { background:#5a3d1e; color:#f0d9a3; }
+  .btn.dang { background:#5a2020; color:#f0a0a0; }
+  .btn.sm { padding:8px 10px; font-size:12px; width:auto; }
+  .btnrow { display:flex; gap:7px; margin-top:9px; }
+  .btnrow .btn { flex:1; }
+
+  input[type=number], input[type=text], select, textarea {
+    background:#0d2717; border:1px solid #1e3a2a; border-radius:7px; color:#e8f0ea;
+    font-family:inherit; font-size:13px; padding:7px 8px; outline:none; width:100%;
+  }
+  input:focus, select:focus, textarea:focus { border-color:#3d7a52; }
+  textarea { min-height:110px; resize:vertical; font-size:11px; line-height:1.5; }
+
+  .glbl { font-size:10px; color:#5a7f6a; margin:12px 0 5px; font-weight:700; letter-spacing:.5px; }
+  .prow { display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid #14301e; }
+  .prow:last-child { border-bottom:none; }
+  .tb { width:19px; height:19px; border-radius:5px; font-size:9px; font-weight:800; text-align:center; line-height:19px; flex-shrink:0; }
+  .pn { flex:1; font-size:13px; }
+  .pn small { color:#6b8f77; font-size:10px; margin-left:3px; }
+  .prow input[type=number] { width:62px; text-align:center; padding:6px 2px; }
+  .cur { font-size:10px; color:#5a7f6a; width:46px; text-align:right; flex-shrink:0; }
+  .dirty input { border-color:#e8d5a3 !important; }
+
+  .scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  table.grid { border-collapse:collapse; font-size:11px; }
+  table.grid th { color:#5a7f6a; font-size:9px; font-weight:700; padding:2px 1px; }
+  table.grid td { padding:1px; }
+  table.grid input { width:28px; text-align:center; padding:5px 0; font-size:11px; }
+  .u  input { color:#3b82f6; }
+  .p0 input { color:#8faa97; }
+  .o1 input { color:#eab308; }
+  .o2 input { color:#ef4444; }
+
+  .note { border-radius:9px; padding:10px 11px; font-size:11px; line-height:1.6; margin-bottom:10px; }
+  .note.err  { background:#3a1414; border:1px solid #5a2020; color:#f0b0b0; }
+  .note.warn { background:#3a2e14; border:1px solid #5a4a20; color:#f0dca3; }
+  .note.ok   { background:#0f2a1c; border:1px solid #2d5a3d; color:#9fc4b0; }
+  .note code { display:block; background:#0a1f14; padding:7px 8px; border-radius:6px; margin-top:6px;
+               font-size:10px; color:#e8d5a3; word-break:break-all; font-family:ui-monospace,monospace; }
+
+  .badge { display:inline-block; font-size:11px; font-weight:800; border-radius:999px; padding:4px 11px; }
+  .b-ing { background:#1a3a26; color:#9fc4b0; }
+  .b-cls { background:#5a3d1e; color:#f0d9a3; }
+  .b-fin { background:#2d5a3d; color:#e8d5a3; }
+
+  .ov { position:fixed; inset:0; background:rgba(5,15,10,.88); display:none; align-items:center; justify-content:center;
+        flex-direction:column; gap:14px; z-index:99; color:#e8d5a3; font-size:13px; text-align:center; padding:20px; }
+  .spin { width:34px; height:34px; border:3px solid #1e3a2a; border-top-color:#e8d5a3; border-radius:50%; animation:sp 0.9s linear infinite; }
+  @keyframes sp { to { transform:rotate(360deg); } }
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+
+<div class="ov" id="ov"><div class="spin"></div><div id="ov-text">불러오는 중…</div></div>
+
+<div class="wrap">
+  <div class="hdr">
+    <div>
+      <div class="sub">GOKA ADMIN · 20260913</div>
+      <h1>🛠 정모 관리자</h1>
+    </div>
+    <div style="display:flex;gap:6px;">
+      <a href="../event.html" target="_blank">👀 회원화면</a>
+      <a href="javascript:location.reload()">↻</a>
+    </div>
+  </div>
+
+  <div class="status">
+    <div class="st"><div class="k">스트로크</div><div class="v" id="s-gross">-</div></div>
+    <div class="st"><div class="k">홀별입력</div><div class="v" id="s-holes">-</div></div>
+    <div class="st"><div class="k">제외홀</div><div class="v" id="s-ex">-</div></div>
+    <div class="st"><div class="k">상태</div><div class="v" id="s-st">-</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" id="t-1" onclick="showTab(1)">①리더보드</button>
+    <button class="tab" id="t-2" onclick="showTab(2)">②스코어카드</button>
+    <button class="tab" id="t-3" onclick="showTab(3)">③신페정산</button>
+    <button class="tab" id="t-4" onclick="showTab(4)">④니어</button>
+    <button class="tab" id="t-5" onclick="showTab(5)">⑤공개</button>
+  </div>
+
+  <!-- ═══ ① 라운드 중 · 리더보드 ═══ -->
+  <div id="v-1">
+    <div class="card">
+      <h2>📥 리더보드 JSON 붙여넣기</h2>
+      <div class="desc">프롬프트를 복사해 AI 앱에 <b>스마트스코어 리더보드 캡처</b>와 함께 붙여넣고,
+        받은 JSON을 여기에 붙여넣으면 아래 입력표가 자동으로 채워집니다.
+        홀별 정보는 없으므로 <b>스트로크 순위만</b> 갱신됩니다. (신페·버디는 ②단계에서)</div>
+      <button class="btn sec" onclick="copyPrompt('leader')" id="cpLead">📋 리더보드 프롬프트 복사</button>
+      <textarea id="jsonLead" placeholder='[{"name":"김성만","over":5},{"name":"석진욱","over":-1}]' style="margin-top:9px;"></textarea>
+      <button class="btn sec" style="margin-top:7px;" onclick="loadLeaderJson()">⬇ 입력표에 채우기</button>
+      <div id="msg1"></div>
+    </div>
+
+    <div class="card">
+      <h2>✍️ 오버파 입력 <span style="font-size:11px;color:#6b8f77;font-weight:400;">(직접 수정 가능)</span></h2>
+      <div class="desc">비어 있는 칸은 저장하지 않습니다. 파(이븐)는 <b>0</b>을 입력하세요.
+        합계 = 기준타 + 오버파 로 저장됩니다.</div>
+      <div id="grid1"></div>
+      <div class="btnrow">
+        <button class="btn sec" onclick="renderTab1()">되돌리기</button>
+        <button class="btn" onclick="saveLeaderboard()">💾 오버파 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ② 라운드 후 · 스코어카드 ═══ -->
+  <div id="v-2" class="hidden">
+    <div class="card">
+      <h2>📥 스코어카드 JSON 붙여넣기</h2>
+      <div class="desc">프롬프트를 복사해 AI 앱에 <b>조별 스코어카드</b>와 함께 붙여넣고, 받은 JSON을 여기에 붙여넣으세요.
+        여러 조를 나눠서 넣어도 아래 목록에 계속 쌓입니다.</div>
+      <button class="btn sec" onclick="copyPrompt('card')" id="cpBtn">📋 스코어카드 프롬프트 복사</button>
+      <textarea id="jsonIn" placeholder='[{"name":"김성만","scores":[0,2,-1,1,1,0,1,1,2,0,0,1,1,2,0,1,0,0]}]' style="margin-top:9px;"></textarea>
+      <button class="btn sec" style="margin-top:7px;" onclick="loadJson()">⬇ 목록에 불러오기</button>
+      <div id="msg2"></div>
+    </div>
+
+    <div class="card">
+      <h2>📋 저장 대기 목록 <span id="pcnt" style="font-size:11px;color:#6b8f77;font-weight:400;"></span></h2>
+      <div class="desc">이름이 자동으로 매칭되지 않으면 직접 선택하세요. 숫자는 직접 수정할 수 있습니다.</div>
+      <div id="pend"></div>
+      <div class="btnrow">
+        <button class="btn sec" onclick="clearPending()">목록 비우기</button>
+        <button class="btn" onclick="savePending()">💾 홀 스코어 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ③ 신페리오 정산 ═══ -->
+  <div id="v-3" class="hidden">
+    <div class="card">
+      <h2>🎲 제외홀 추첨 &amp; 신페리오 정산</h2>
+      <div class="desc">코스별로 파3·파4·파5에서 각 1홀씩 무작위 추첨한 뒤, 전원의
+        NP핸디캡 / Net / Luck을 계산해 저장합니다.</div>
+      <div id="exinfo"></div>
+      <div id="incomp"></div>
+      <div class="btnrow">
+        <button class="btn sec" onclick="recalcOnly()">🔄 재정산만</button>
+        <button class="btn warn" onclick="drawAndCalc()">🎲 추첨 + 정산</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>🧮 정산 결과</h2>
+      <div id="npres"></div>
+    </div>
+  </div>
+
+  <!-- ═══ ④ 니어리스트 ═══ -->
+  <div id="v-4" class="hidden">
+    <div class="card">
+      <h2>🚩 니어리스트 입력</h2>
+      <div class="desc">파3 홀별로 니어를 딴 선수를 고르세요. 선택된 선수의 팀에 <b>+10점</b>이 붙습니다.
+        비워두면 그 홀은 점수에 반영되지 않습니다.</div>
+      <div id="nearui"></div>
+      <button class="btn" style="margin-top:11px;" onclick="saveNearest()" id="nearBtn">💾 니어리스트 저장</button>
+    </div>
+  </div>
+
+  <!-- ═══ ⑤ 공개 ═══ -->
+  <div id="v-5" class="hidden">
+    <div class="card">
+      <h2>🔓 공개 단계</h2>
+      <div class="desc">
+        <b>진행중</b> — 회원 화면은 [라운드 중] 탭만. 최종 종합·개인시상은 잠김<br>
+        <b>1차 공개(마감)</b> — <span style="color:#f0d9a3;">신페 정산 전, 스트로크 기준으로 공개</span>.
+        팀 순위점수 · 메달리스트 · 버디 · 니어 + 개인시상(스트로크·번외)<br>
+        <b>2차 공개(완료)</b> — 신페리오까지 <b>전체 공개</b>. 신페 남·여 우승, 꼴등 −10, 신페 개인순위 포함
+      </div>
+      <div style="margin:10px 0;">현재 상태 : <span id="stBadge"></span></div>
+      <div class="btnrow">
+        <button class="btn sec"  onclick="setStatus('진행중')">🔒 비공개</button>
+        <button class="btn warn" onclick="setStatus('마감')">1️⃣ 1차 공개<br><small style="font-weight:400;">스트로크</small></button>
+        <button class="btn"      onclick="setStatus('완료')">2️⃣ 2차 공개<br><small style="font-weight:400;">신페 포함</small></button>
+      </div>
+      <div id="stGuide"></div>
+    </div>
+    <div class="card">
+      <h2>🏆 최종 종합 미리보기</h2>
+      <div class="desc">회원 화면 [최종 종합]과 같은 방식으로 계산한 결과입니다. 공개 전 검산용.</div>
+      <div id="preview"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════
+   설정
+   ════════════════════════════════════════════════════ */
+const SUPABASE_URL = 'https://ogyzzmlxxmplwaawraoc.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9neXp6bWx4eG1wbHdhYXdyYW9jIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTIxMzY1MiwiZXhwIjoyMDk0Nzg5NjUyfQ.rfltEsqCP23jQ21gKF8BIRzGos5-PORKpuMXouClJYs';
+const SB_H  = { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY };
+const SB_HW = { ...SB_H, 'Content-Type': 'application/json', Prefer: 'return=minimal' };
+
+const MATCH_ID  = 20260913;
+const RANK_PTS  = [100, 90, 80, 70];
+const TEAM_COLORS = {
+  '레드':   ['#E24B4A','#3a1414','#f0a0a0'],
+  '네이비': ['#378ADD','#0e2540','#9fc4ef'],
+  '화이트': ['#b8b6ad','#2a2a26','#e8e6dd'],
+  '블랙':   ['#888',   '#232323','#cfcfcf'],
+};
+
+/* ════════════════════════════════════════════════════
+   상태
+   ════════════════════════════════════════════════════ */
+let MEMBERS = {}, RECORDS = [], EPISODES = [], COURSES = [];
+let VENUE = '', STATUS = '진행중', HAS_NEAREST = true;
+let pending = [];            /* ② 저장 대기: [{name, phone, scores[18]}] */
+let curTab  = 1;
+
+/* ════════════════════════════════════════════════════
+   Supabase / UI 유틸
+   ════════════════════════════════════════════════════ */
+function sbGet(table, q = '') {
+  return fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*${q}`, { headers: SB_H }).then(r => r.json());
+}
+async function sbPatch(table, filter, body) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filter}`, { method:'PATCH', headers: SB_HW, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error(await r.text());
+}
+function show(msg) { document.getElementById('ov-text').innerText = msg; document.getElementById('ov').style.display = 'flex'; }
+function hide() { document.getElementById('ov').style.display = 'none'; }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function note(kind, html) { return `<div class="note ${kind}">${html}</div>`; }
+
+function showTab(n) {
+  curTab = n;
+  for (let i = 1; i <= 5; i++) {
+    document.getElementById('v-' + i).classList.toggle('hidden', i !== n);
+    document.getElementById('t-' + i).classList.toggle('active', i === n);
+  }
+  if (n === 3) renderTab3();
+  if (n === 4) renderTab4();
+  if (n === 5) renderTab5();
+}
+
+/* ════════════════════════════════════════════════════
+   데이터 로딩
+   ════════════════════════════════════════════════════ */
+const GROUP_ORDER = g => {
+  const m = /^(파크|벨리)(\d+)조$/.exec(g || '');
+  return m ? (m[1] === '파크' ? 0 : 100) + Number(m[2]) : 999;
+};
+
+async function loadAll() {
+  show('불러오는 중…');
+  try {
+    const [mems, recs, eps, crs] = await Promise.all([
+      sbGet('tb_member'),
+      sbGet('tb_Record', `&대회번호=eq.${MATCH_ID}`),
+      sbGet('tb_Match_Episodes', `&대회번호=eq.${MATCH_ID}`),
+      sbGet('tb_Course')
+    ]);
+    MEMBERS = {}; (mems || []).forEach(m => MEMBERS[m['전화번호']] = m);
+    RECORDS = (recs || []).sort((a, b) =>
+      GROUP_ORDER(a['조번호']) - GROUP_ORDER(b['조번호']) || String(a['성명']).localeCompare(String(b['성명']), 'ko'));
+    EPISODES = eps || [];
+    COURSES  = crs || [];
+    VENUE   = (EPISODES[0] && EPISODES[0]['구장명']) || '';
+    STATUS  = (EPISODES[0] && EPISODES[0]['완료구분']) || '진행중';
+    HAS_NEAREST = !!(EPISODES[0] && Object.prototype.hasOwnProperty.call(EPISODES[0], '니어리스트'));
+    hide();
+    renderStatus();
+    renderTab1();
+    renderPending();
+  } catch (e) {
+    hide();
+    alert('데이터 로딩 실패: ' + e.message);
+  }
+}
+
+/* 코스 par 배열 */
+function parsOf(courseName) {
+  const c = COURSES.find(c => c['구장명'] === VENUE && c['코스명'] === courseName);
+  return c ? [c.P1, c.P2, c.P3, c.P4, c.P5, c.P6, c.P7, c.P8, c.P9].map(Number) : null;
+}
+function parsFull(rec) {
+  const f = parsOf(rec['전반코스']), b = parsOf(rec['후반코스']);
+  return (f && b) ? [...f, ...b] : null;
+}
+function basePar(rec) {
+  const p = parsFull(rec);
+  return p ? p.reduce((a, b) => a + b, 0) : 72;
+}
+function nickOf(phone) {
+  const m = MEMBERS[phone];
+  return m ? (m['닉네임'] || m['성명']) : '';
+}
+function teamBadge(team) {
+  const c = TEAM_COLORS[team];
+  return c ? `<span class="tb" style="background:${c[1]};color:${c[2]};">${team[0]}</span>` : '<span class="tb"></span>';
+}
+function hasHoles(r) { return r['H1'] !== null && r['H1'] !== undefined; }
+
+function renderStatus() {
+  const gross = RECORDS.filter(r => Number(r['합계']) > 0).length;
+  const holes = RECORDS.filter(hasHoles).length;
+  const ex = EPISODES.map(e => `${e['코스'][0]}:${e['제외홀'] || '-'}`).join(' ');
+  document.getElementById('s-gross').innerText = `${gross}/${RECORDS.length}`;
+  document.getElementById('s-holes').innerText = `${holes}/${RECORDS.length}`;
+  document.getElementById('s-ex').innerHTML = `<span style="font-size:10px;">${esc(ex || '-')}</span>`;
+  document.getElementById('s-st').innerHTML = `<span style="font-size:12px;">${STATUS}</span>`;
+}
+
+/* ════════════════════════════════════════════════════
+   JSON 파싱 공통
+   ════════════════════════════════════════════════════ */
+/* AI 답변에 ```json 펜스나 앞뒤 설명이 붙어와도 배열만 뽑아냄 */
+function parseJsonArray(raw) {
+  let t = String(raw || '').trim();
+  t = t.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+  if (t[0] !== '[') {
+    const s = t.indexOf('['), e = t.lastIndexOf(']');
+    if (s >= 0 && e > s) t = t.slice(s, e + 1);
+  }
+  const data = JSON.parse(t);
+  if (!Array.isArray(data)) throw new Error('배열([...]) 형태가 아닙니다.');
+  return data;
+}
+
+/* "E" / "이븐" / "+7" / "-2" / 7 → 정수 */
+function toOver(v) {
+  if (typeof v === 'number') return Number.isFinite(v) ? Math.round(v) : null;
+  const s = String(v == null ? '' : v).trim().replace(/\s/g, '');
+  if (s === '') return null;
+  if (/^(e|even|이븐|파)$/i.test(s)) return 0;
+  const n = Number(s.replace(/^\+/, ''));
+  return Number.isFinite(n) ? Math.round(n) : null;
+}
+
+/* 이름 → tb_Record 매칭 (성명 → 닉네임 → 공백제거 순) */
+function matchRecord(name) {
+  const n = String(name || '').trim();
+  if (!n) return null;
+  const flat = s => String(s || '').replace(/\s+/g, '');
+  return RECORDS.find(r => r['성명'] === n)
+      || RECORDS.find(r => flat(r['성명']) === flat(n))
+      || RECORDS.find(r => nickOf(r['전화번호']) === n)
+      || null;
+}
+
+/* ════════════════════════════════════════════════════
+   ① 리더보드 — 오버파 입력표
+   ════════════════════════════════════════════════════ */
+function renderTab1() {
+  const byGroup = {};
+  RECORDS.forEach(r => { (byGroup[r['조번호']] = byGroup[r['조번호']] || []).push(r); });
+  const groups = Object.keys(byGroup).sort((a, b) => GROUP_ORDER(a) - GROUP_ORDER(b));
+  document.getElementById('grid1').innerHTML = groups.map(g => {
+    const rows = byGroup[g].map(r => {
+      const cur = Number(r['합계']) > 0 ? (Number(r['합계']) - basePar(r)) : null;
+      return `<div class="prow" id="lr-${r['전화번호']}">
+        ${teamBadge(r['소속팀'])}
+        <span class="pn">${esc(r['성명'])}<small>${esc(nickOf(r['전화번호']))}</small></span>
+        <span class="cur">${cur === null ? '<span style="color:#4a6b58;">미입력</span>' : (Number(r['합계']) + '타')}</span>
+        <input type="number" inputmode="numeric" step="1" placeholder="±"
+               value="${cur === null ? '' : cur}" data-phone="${r['전화번호']}"
+               oninput="this.closest('.prow').classList.add('dirty')">
+      </div>`;
+    }).join('');
+    return `<div class="glbl">${esc(g)}</div>${rows}`;
+  }).join('');
+}
+
+function loadLeaderJson() {
+  const raw = document.getElementById('jsonLead').value.trim();
+  if (!raw) return alert('JSON을 붙여넣으세요.');
+  let data;
+  try { data = parseJsonArray(raw); }
+  catch (e) { return alert('JSON 형식이 올바르지 않습니다.\n\n' + e.message); }
+  applyLeaderboard(data);
+  document.getElementById('jsonLead').value = '';
+}
+
+function applyLeaderboard(players) {
+  let filled = 0; const miss = [], bad = [];
+  players.forEach(p => {
+    /* over / score / 오버파 어느 key로 와도 받음 */
+    const over = toOver(p.over ?? p.score ?? p['오버파'] ?? p.total);
+    if (over === null) { bad.push(p.name || '(이름없음)'); return; }
+    const rec = matchRecord(p.name);
+    if (!rec) { miss.push(p.name); return; }
+    const row = document.getElementById('lr-' + rec['전화번호']);
+    if (!row) return;
+    row.querySelector('input').value = over;
+    row.classList.add('dirty');
+    filled++;
+  });
+  const warn = miss.length || bad.length;
+  document.getElementById('msg1').innerHTML =
+    note(warn ? 'warn' : 'ok',
+      `✅ ${filled}명 채워졌습니다. 아래 표를 확인하고 <b>[오버파 저장]</b>을 누르세요.` +
+      (miss.length ? `<br>⚠️ 명단에서 못 찾은 이름: <b>${esc(miss.join(', '))}</b> — 직접 입력하세요.` : '') +
+      (bad.length  ? `<br>⚠️ 오버파를 읽지 못해 건너뜀: <b>${esc(bad.join(', '))}</b>` : ''));
+  if (filled) document.getElementById('grid1').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function saveLeaderboard() {
+  const inputs = [...document.querySelectorAll('#grid1 input[data-phone]')];
+  const jobs = [];
+  inputs.forEach(inp => {
+    const v = inp.value.trim();
+    if (v === '') return;
+    const over = Number(v);
+    if (!Number.isFinite(over)) return;
+    const rec = RECORDS.find(r => r['전화번호'] === inp.dataset.phone);
+    if (!rec) return;
+    const gross = basePar(rec) + over;
+    if (Number(rec['합계']) === gross) return;   /* 변경 없음 */
+    jobs.push({ rec, gross });
+  });
+  if (!jobs.length) return alert('저장할 변경 사항이 없습니다.');
+  if (!confirm(`${jobs.length}명의 스트로크를 저장합니다.\n(홀별 스코어는 ②단계에서 따로 저장)`)) return;
+
+  show(`저장 중… (${jobs.length}명)`);
+  try {
+    for (const j of jobs) {
+      await sbPatch('tb_Record', `대회번호=eq.${MATCH_ID}&전화번호=eq.${encodeURIComponent(j.rec['전화번호'])}`, { 합계: j.gross });
+      j.rec['합계'] = j.gross;
+    }
+    hide();
+    renderStatus(); renderTab1();
+    alert(`✅ ${jobs.length}명 저장 완료!\n회원 화면 [라운드 중] 탭에 바로 반영됩니다.`);
+  } catch (e) { hide(); alert('저장 실패: ' + e.message); }
+}
+
+/* ════════════════════════════════════════════════════
+   ② 스코어카드 — 18홀 입력
+   ════════════════════════════════════════════════════ */
+const LEADER_PROMPT = `첨부하는 골프 앱(스마트스코어) 리더보드 캡처 화면을 보고, 선수별 현재 오버파를 JSON 형식으로 만들어줘.
+
+[규칙]
+1. name = 화면에 적힌 선수 이름 그대로.
+2. over = 오버파 누계를 정수로. "E"·"이븐"·"0"은 0, 언더는 음수(-2), "+7"은 + 없이 7.
+3. 진행홀 표기(예 "12H", "12홀")가 보이면 holes 에 정수로 넣고, 없으면 생략해.
+4. 여러 장을 첨부하면 전부 합쳐서 한 명당 한 번만 출력해. 같은 선수가 여러 장에 있으면 진행홀이 더 많은 쪽을 써.
+5. 흐릿해서 확신이 없는 선수는 아예 빼. 추측해서 채우지 마.
+6. 인사말이나 설명은 일절 하지 말고, 오직 JSON 코드만 딱 출력해 줘.
+
+[출력 형식 예시]
+[
+  {"name": "김성만", "over": 5, "holes": 12},
+  {"name": "석진욱", "over": -1, "holes": 12},
+  {"name": "신현정", "over": 11, "holes": 12}
+]`;
+
+const SCORE_PROMPT = `첨부하는 골프 스코어카드 이미지를 보고, 선수들의 18홀 오버파 타수를 추출해서 JSON 형식으로 만들어줘.
+
+[규칙]
+1. 전반 9홀과 후반 9홀의 타수를 합쳐서 선수당 정확히 18개의 숫자로 배열(Array)을 만들어. (1번홀 → 18번홀 순서)
+2. 타수 표기법:
+   - 파(Par, 기호 0 또는 P 등)는 숫자 0으로 표기해.
+   - 버디(나비 그림, 파란색 글씨, 또는 -1)는 음수인 -1로 표기해. (이글은 -2)
+   - 보기, 더블보기 등 오버파(+1, +2 등)는 + 기호 없이 숫자 1, 2, 3으로 표기해.
+   - 실제 타수(4, 5, 3 …)로 적혀 있으면 각 홀의 파(Par)를 빼서 오버파로 변환해.
+3. JSON 구조는 반드시 아래 형식을 정확히 지켜야 해. key 이름(name, scores)을 임의로 바꾸지 마.
+4. 인사말이나 다른 설명은 일절 하지 말고, 오직 JSON 코드만 딱 출력해 줘.
+
+[출력 형식 예시]
+[
+  {"name": "김성만", "scores": [0, 2, -1, 1, 1, 0, 1, 1, 2, 0, 0, 1, 1, 2, 0, 1, 0, 0]},
+  {"name": "석진욱", "scores": [0, 2, 0, 1, 2, 0, 2, 0, 2, 1, 1, 0, 2, 2, 1, 2, 0, 0]}
+]`;
+
+function copyPrompt(which) {
+  const isLead = which === 'leader';
+  const text = isLead ? LEADER_PROMPT : SCORE_PROMPT;
+  const btn = document.getElementById(isLead ? 'cpLead' : 'cpBtn'), orig = btn.innerHTML;
+  const done = () => { btn.innerHTML = '✅ 복사 완료!'; setTimeout(() => btn.innerHTML = orig, 2000); };
+  navigator.clipboard.writeText(text).then(done).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    done();
+  });
+}
+
+function loadJson() {
+  const raw = document.getElementById('jsonIn').value.trim();
+  if (!raw) return alert('JSON을 붙여넣으세요.');
+  let data;
+  try { data = parseJsonArray(raw); }
+  catch (e) { return alert('JSON 형식이 올바르지 않습니다.\n\n' + e.message); }
+  applyScorecard(data);
+  document.getElementById('jsonIn').value = '';
+}
+
+function applyScorecard(players) {
+  let added = 0; const bad = [];
+  players.forEach(p => {
+    const s = p.scores;
+    if (!Array.isArray(s) || s.length !== 18 || s.some(v => !Number.isFinite(Number(v)))) { bad.push(p.name); return; }
+    const rec = matchRecord(p.name);
+    const item = { name: String(p.name || ''), phone: rec ? rec['전화번호'] : '', scores: s.map(Number) };
+    const dup = pending.findIndex(x => x.phone && x.phone === item.phone);
+    if (dup >= 0) pending[dup] = item; else pending.push(item);
+    added++;
+  });
+  document.getElementById('msg2').innerHTML =
+    note(bad.length ? 'warn' : 'ok',
+      `✅ ${added}명 목록에 담았습니다.` +
+      (bad.length ? `<br>⚠️ 18홀이 완성되지 않아 제외: <b>${esc(bad.join(', '))}</b>` : ''));
+  renderPending();
+  if (curTab === 2) document.getElementById('pend').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function scoreClass(v) { return v < 0 ? 'u' : v === 0 ? 'p0' : v === 1 ? 'o1' : 'o2'; }
+
+function renderPending() {
+  document.getElementById('pcnt').innerText = pending.length ? `(${pending.length}명)` : '';
+  const el = document.getElementById('pend');
+  if (!pending.length) {
+    el.innerHTML = `<div style="text-align:center;padding:22px;color:#4a6b58;font-size:12px;">아직 담긴 선수가 없습니다.</div>`;
+    return;
+  }
+  const opts = phone => `<option value="">— 선수 선택 —</option>` + RECORDS.map(r =>
+    `<option value="${r['전화번호']}" ${r['전화번호'] === phone ? 'selected' : ''}>${esc(r['조번호'])} · ${esc(r['성명'])}</option>`).join('');
+
+  el.innerHTML = pending.map((p, i) => {
+    const sum = p.scores.reduce((a, b) => a + b, 0);
+    const cells = p.scores.map((v, h) =>
+      `<td class="${scoreClass(v)}"><input type="number" step="1" value="${v}"
+        onchange="editScore(${i},${h},this.value)"></td>`).join('');
+    const head = p.scores.map((_, h) => `<th>${h + 1}</th>`).join('');
+    return `<div style="border-top:1px solid #1e3a2a;padding:10px 0;">
+      <div style="display:flex;gap:7px;align-items:center;margin-bottom:7px;">
+        <select onchange="pending[${i}].phone=this.value;renderPending();" style="flex:1;">${opts(p.phone)}</select>
+        <span style="font-size:11px;color:#e8d5a3;white-space:nowrap;">${sum >= 0 ? '+' : ''}${sum}</span>
+        <button class="btn sec sm" onclick="pending.splice(${i},1);renderPending();">✕</button>
+      </div>
+      ${p.phone ? '' : note('warn', `⚠️ 읽어온 이름 <b>${esc(p.name)}</b> 을(를) 명단에서 찾지 못했습니다. 위에서 선수를 선택하세요.`)}
+      <div class="scroll"><table class="grid"><thead><tr>${head}</tr></thead><tbody><tr>${cells}</tr></tbody></table></div>
+    </div>`;
+  }).join('');
+}
+
+function editScore(i, h, v) {
+  const n = Number(v);
+  if (Number.isFinite(n)) pending[i].scores[h] = n;
+  renderPending();
+}
+function clearPending() {
+  if (!pending.length) return;
+  if (!confirm('저장 대기 목록을 모두 비웁니다. (저장된 데이터는 그대로)')) return;
+  pending = []; renderPending();
+  document.getElementById('msg2').innerHTML = '';
+}
+
+async function savePending() {
+  const ready = pending.filter(p => p.phone);
+  if (!ready.length) return alert('선수가 매칭된 항목이 없습니다.');
+  const unmatched = pending.length - ready.length;
+  if (!confirm(`${ready.length}명의 18홀 스코어를 저장합니다.` +
+    (unmatched ? `\n(선수 미선택 ${unmatched}명은 제외)` : '') +
+    `\n\n저장 후 ③단계에서 신페리오 정산을 실행하세요.`)) return;
+
+  show(`저장 중… (${ready.length}명)`);
+  try {
+    for (const p of ready) {
+      const rec = RECORDS.find(r => r['전화번호'] === p.phone);
+      if (!rec) continue;
+      const upd = {};
+      p.scores.forEach((s, i) => upd['H' + (i + 1)] = s);
+      upd['합계'] = basePar(rec) + p.scores.reduce((a, b) => a + b, 0);
+      await sbPatch('tb_Record', `대회번호=eq.${MATCH_ID}&전화번호=eq.${encodeURIComponent(p.phone)}`, upd);
+      Object.assign(rec, upd);
+    }
+    pending = pending.filter(p => !p.phone);
+    hide(); renderPending(); renderStatus();
+    alert(`✅ ${ready.length}명 저장 완료!\n\n③신페정산 탭에서 제외홀 추첨 + 정산을 실행하세요.`);
+  } catch (e) { hide(); alert('저장 실패: ' + e.message); }
+}
+
+/* ════════════════════════════════════════════════════
+   ③ 신페리오 정산
+   ════════════════════════════════════════════════════ */
+function renderTab3() {
+  document.getElementById('exinfo').innerHTML = EPISODES.map(e => {
+    const p = parsOf(e['코스']);
+    const detail = e['제외홀']
+      ? String(e['제외홀']).split(',').map(h => `${h}번(파${p ? p[Number(h) - 1] : '?'})`).join(' · ')
+      : '<span style="color:#8a6b4a;">미추첨</span>';
+    return `<div class="prow"><span class="pn"><b>${esc(e['코스'])}</b></span>
+      <span style="font-size:12px;color:#9fc4b0;">${detail}</span></div>`;
+  }).join('');
+
+  const miss = RECORDS.filter(r => !hasHoles(r));
+  document.getElementById('incomp').innerHTML = miss.length
+    ? note('warn', `⚠️ 홀별 스코어 미입력 <b>${miss.length}명</b><br>${esc(miss.map(r => r['성명']).join(', '))}`)
+    : note('ok', '✅ 36명 전원 홀별 스코어가 입력되었습니다.');
+
+  const done = RECORDS.filter(r => Number(r['NP_Handicap']) > 0);
+  document.getElementById('npres').innerHTML = done.length === 0
+    ? `<div style="text-align:center;padding:20px;color:#4a6b58;font-size:12px;">아직 정산 전입니다.</div>`
+    : `<div class="scroll"><table class="grid" style="width:100%;font-size:12px;">
+        <thead><tr><th style="text-align:left;">선수</th><th>합계</th><th>HDCP</th><th>Net</th><th>Luck</th></tr></thead>
+        <tbody>${[...done].sort((a, b) => Number(a['Net_Score']) - Number(b['Net_Score'])).map((r, i) => `
+          <tr style="border-top:1px solid #14301e;">
+            <td style="text-align:left;padding:6px 3px;">${i + 1}. ${teamBadge(r['소속팀'])} ${esc(r['성명'])}</td>
+            <td style="text-align:center;">${Number(r['합계'])}</td>
+            <td style="text-align:center;color:#8faa97;">${Number(r['NP_Handicap']).toFixed(1)}</td>
+            <td style="text-align:center;color:#e8d5a3;font-weight:700;">${Number(r['Net_Score']).toFixed(1)}</td>
+            <td style="text-align:center;">${Number(r['Luck_Factor']).toFixed(1)}</td>
+          </tr>`).join('')}</tbody></table></div>`;
+}
+
+async function drawAndCalc() {
+  const miss = RECORDS.filter(r => !hasHoles(r));
+  if (miss.length) {
+    if (!confirm(`⚠️ 홀별 스코어 미입력 ${miss.length}명이 있습니다.\n(${miss.map(r => r['성명']).join(', ')})\n\n미입력 선수는 정산에서 제외됩니다. 계속할까요?`)) return;
+  }
+  const drawn = EPISODES.some(e => e['제외홀'] && String(e['제외홀']).trim() !== '');
+  if (drawn) {
+    if (!confirm('⚠️ 이미 제외홀이 추첨된 대회입니다.\n\n다시 추첨하면 제외홀이 새로 뽑히고\n신페리오 순위가 바뀝니다.\n\n정말 재추첨하시겠습니까?')) return;
+  } else {
+    if (!confirm('제외홀을 무작위 추첨하고 신페리오 정산을 실행합니다.\n계속하시겠습니까?')) return;
+  }
+
+  show('🎲 제외홀 추첨 중…');
+  try {
+    const drawnList = [];
+    for (const ep of EPISODES) {
+      const p = parsOf(ep['코스']);
+      if (!p) continue;
+      const pick = par => {
+        const hs = p.map((v, i) => v === par ? i + 1 : null).filter(Boolean);
+        return hs.length ? hs[Math.floor(Math.random() * hs.length)] : null;
+      };
+      const ex = [pick(3), pick(4), pick(5)].filter(Boolean).join(',');
+      await sbPatch('tb_Match_Episodes', `대회번호=eq.${MATCH_ID}&코스=eq.${encodeURIComponent(ep['코스'])}`, { 제외홀: ex });
+      ep['제외홀'] = ex;
+      drawnList.push(`  ${ep['코스']}: [${ex}]홀 제외`);
+    }
+    show('🧮 신페리오 정산 중…');
+    const n = await runNP();
+    hide(); renderStatus(); renderTab3();
+    alert(`🎲 추첨 완료!\n${drawnList.join('\n')}\n\n🧮 ${n}명 정산 완료`);
+  } catch (e) { hide(); alert('오류: ' + e.message); }
+}
+
+async function recalcOnly() {
+  if (!EPISODES.some(e => e['제외홀'])) return alert('제외홀이 아직 추첨되지 않았습니다.');
+  if (!confirm('제외홀은 그대로 두고 신페리오만 다시 계산합니다.\n계속하시겠습니까?')) return;
+  show('🧮 재정산 중…');
+  try {
+    const n = await runNP();
+    hide(); renderStatus(); renderTab3();
+    alert(`🧮 ${n}명 재정산 완료`);
+  } catch (e) { hide(); alert('오류: ' + e.message); }
+}
+
+/* 신페리오 엔진 — admin/index.html 과 동일 공식 */
+async function runNP() {
+  let cnt = 0;
+  for (const r of RECORDS) {
+    if (!hasHoles(r)) continue;
+    const scores = Array.from({ length: 18 }, (_, i) => Number(r['H' + (i + 1)]) || 0);
+    const fe = EPISODES.find(e => e['코스'] === r['전반코스']);
+    const be = EPISODES.find(e => e['코스'] === r['후반코스']);
+    const pars = parsFull(r);
+    if (!fe || !be || !pars) continue;
+    const fx = fe['제외홀'] ? String(fe['제외홀']).split(',').map(Number).filter(n => !isNaN(n)) : [];
+    const bx = be['제외홀'] ? String(be['제외홀']).split(',').map(Number).filter(n => !isNaN(n)) : [];
+    let sel = 0;
+    for (let h = 0; h < 9; h++) { if (!fx.includes(h + 1)) sel += scores[h]; }
+    for (let h = 0; h < 9; h++) { if (!bx.includes(h + 1)) sel += scores[h + 9]; }
+    const base = pars.reduce((a, b) => a + b, 0);
+    const np   = Math.round(sel * 1.5 * 0.8 * 100) / 100;
+    const gros = base + scores.reduce((a, b) => a + b, 0);
+    const net  = Math.round((gros - np) * 100) / 100;
+    const luck = Math.round((np - (gros - base) * 0.8) * 100) / 100;
+    const upd = { 합계: gros, NP_Handicap: np, Net_Score: net, Luck_Factor: luck };
+    await sbPatch('tb_Record', `대회번호=eq.${MATCH_ID}&전화번호=eq.${encodeURIComponent(r['전화번호'])}`, upd);
+    Object.assign(r, upd);
+    cnt++;
+  }
+  return cnt;
+}
+
+/* ════════════════════════════════════════════════════
+   ④ 니어리스트
+   ════════════════════════════════════════════════════ */
+/* 저장 형식: tb_Match_Episodes.니어리스트 = 코스의 파3 홀 순서대로 전화번호를 쉼표로 나열
+   예) 파크(파3 = 4번,7번) → "010-1000-0001,010-2000-0004"  (빈 홀은 빈칸) */
+function par3Holes(courseName) {
+  const p = parsOf(courseName);
+  return p ? p.map((v, i) => v === 3 ? i + 1 : null).filter(Boolean) : [];
+}
+
+function renderTab4() {
+  const el = document.getElementById('nearui');
+  if (!HAS_NEAREST) {
+    el.innerHTML = note('err',
+      `❌ <b>tb_Match_Episodes 에 "니어리스트" 컬럼이 없습니다.</b><br>
+       Supabase → SQL Editor 에서 아래를 <b>한 번만</b> 실행한 뒤 이 페이지를 새로고침하세요.
+       <code>alter table "tb_Match_Episodes" add column "니어리스트" text;</code>`);
+    document.getElementById('nearBtn').disabled = true;
+    return;
+  }
+  document.getElementById('nearBtn').disabled = false;
+
+  const opts = sel => `<option value="">— 없음 —</option>` + RECORDS.map(r =>
+    `<option value="${r['전화번호']}" ${r['전화번호'] === sel ? 'selected' : ''}>${esc(r['소속팀'])} · ${esc(r['성명'])}</option>`).join('');
+
+  el.innerHTML = EPISODES.slice().sort((a, b) => String(a['코스']).localeCompare(String(b['코스']), 'ko')).map(ep => {
+    const holes = par3Holes(ep['코스']);
+    const saved = String(ep['니어리스트'] || '').split(',').map(s => s.trim());
+    if (!holes.length) return `<div class="glbl">${esc(ep['코스'])}</div>
+      <div style="font-size:11px;color:#4a6b58;padding:6px 0;">파3 홀이 없습니다.</div>`;
+    return `<div class="glbl">${esc(ep['코스'])} 코스</div>` + holes.map((h, i) =>
+      `<div class="prow">
+         <span class="pn" style="flex:0 0 74px;">🚩 ${h}번홀<small>파3</small></span>
+         <select id="near-${esc(ep['코스'])}-${i}" style="flex:1;">${opts(saved[i] || '')}</select>
+       </div>`).join('');
+  }).join('');
+}
+
+async function saveNearest() {
+  if (!HAS_NEAREST) return;
+  const jobs = EPISODES.map(ep => {
+    const holes = par3Holes(ep['코스']);
+    const vals = holes.map((_, i) => {
+      const s = document.getElementById(`near-${ep['코스']}-${i}`);
+      return s ? s.value : '';
+    });
+    return { ep, value: vals.join(',') };
+  });
+  const picked = jobs.flatMap(j => j.value.split(',').filter(Boolean));
+  const names = picked.map(ph => {
+    const r = RECORDS.find(x => x['전화번호'] === ph);
+    return r ? `${r['소속팀']} ${r['성명']}` : ph;
+  });
+  if (!confirm(`니어리스트 ${picked.length}명을 저장합니다.\n\n${names.join('\n') || '(없음)'}\n\n각 선수의 팀에 +10점이 붙습니다.`)) return;
+
+  show('저장 중…');
+  try {
+    for (const j of jobs) {
+      await sbPatch('tb_Match_Episodes', `대회번호=eq.${MATCH_ID}&코스=eq.${encodeURIComponent(j.ep['코스'])}`, { 니어리스트: j.value });
+      j.ep['니어리스트'] = j.value;
+    }
+    hide();
+    alert('✅ 니어리스트 저장 완료!');
+  } catch (e) {
+    hide();
+    if (/니어리스트|column/i.test(e.message)) {
+      HAS_NEAREST = false; renderTab4();
+      alert('컬럼이 없어 저장하지 못했습니다. 화면의 SQL을 먼저 실행하세요.');
+    } else alert('저장 실패: ' + e.message);
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   ⑤ 공개 · 최종 종합 미리보기
+   ════════════════════════════════════════════════════ */
+const STAGE_LABEL = { '진행중': '🔒 비공개', '마감': '1️⃣ 1차 공개 (스트로크)', '완료': '2️⃣ 2차 공개 (신페 포함)' };
+
+function renderTab5() {
+  const cls = STATUS === '완료' ? 'b-fin' : STATUS === '마감' ? 'b-cls' : 'b-ing';
+  document.getElementById('stBadge').innerHTML = `<span class="badge ${cls}">${STAGE_LABEL[STATUS] || STATUS}</span>`;
+
+  const npDone = RECORDS.filter(r => Number(r['NP_Handicap']) > 0).length;
+  const gross  = RECORDS.filter(r => Number(r['합계']) > 0).length;
+  let guide = '';
+  if (STATUS === '진행중') {
+    guide = gross === 0
+      ? note('warn', '① 리더보드에서 스트로크를 먼저 입력하세요.')
+      : note('ok', `✅ 스트로크 ${gross}명 입력됨 → <b>[1차 공개]</b>를 누르면 회원 화면에 스트로크 기준 결과가 열립니다.`);
+  } else if (STATUS === '마감') {
+    guide = npDone === 0
+      ? note('warn', '신페리오 정산 전입니다. ②스코어카드 → ③신페정산을 마친 뒤 <b>[2차 공개]</b>를 누르세요.')
+      : note('ok', `✅ 신페 정산 ${npDone}명 완료 → <b>[2차 공개]</b> 준비됨.`);
+  } else {
+    guide = note('ok', '🎉 전체 공개 중입니다. 회원 화면에서 최종 종합 + 개인시상(신페 포함)이 모두 보입니다.');
+  }
+  document.getElementById('stGuide').innerHTML = guide;
+  document.getElementById('preview').innerHTML = buildFinal();
+}
+
+async function setStatus(s) {
+  if (s === STATUS) return alert(`이미 "${STAGE_LABEL[s]}" 상태입니다.`);
+  let extra = '';
+  if (s === '마감') {
+    extra = '\n\n회원 화면에 스트로크 기준 최종 종합 + 개인시상(스트로크·번외)이 공개됩니다.\n신페리오 항목은 아직 가려집니다.';
+    if (RECORDS.every(r => !(Number(r['합계']) > 0))) {
+      if (!confirm('⚠️ 아직 입력된 스트로크가 없습니다.\n그래도 1차 공개하시겠습니까?')) return;
+    }
+  } else if (s === '완료') {
+    extra = '\n\n신페리오까지 전체 공개됩니다.\n(신페 남·여 우승, 꼴등 −10, 신페 개인순위 포함)';
+    if (!RECORDS.some(r => Number(r['NP_Handicap']) > 0)) {
+      if (!confirm('⚠️ 신페리오 정산이 아직 되지 않았습니다.\n(③신페정산 탭에서 추첨+정산을 먼저 실행하세요)\n\n그래도 2차 공개하시겠습니까?')) return;
+    }
+  } else if (STATUS !== '진행중') {
+    extra = '\n\n공개된 결과가 다시 숨겨집니다.';
+  }
+  if (!confirm(`"${STAGE_LABEL[s]}" 로 변경합니다.${extra}`)) return;
+  show('상태 변경 중…');
+  try {
+    await sbPatch('tb_Match_Episodes', `대회번호=eq.${MATCH_ID}`, { 완료구분: s });
+    EPISODES.forEach(e => e['완료구분'] = s);
+    STATUS = s;
+    hide(); renderStatus(); renderTab5();
+    alert(`✅ "${STAGE_LABEL[s]}" 로 변경되었습니다.`);
+  } catch (e) { hide(); alert('변경 실패: ' + e.message); }
+}
+
+/* event.html [최종 종합]과 동일한 계산 */
+function genderOf(phone) { return String(phone).split('-')[1] === '2000' ? '여' : '남'; }
+function birdies(r) { let b = 0; for (let i = 1; i <= 18; i++) if (Number(r['H' + i]) === -1) b++; return b; }
+
+function buildFinal() {
+  const played = RECORDS.filter(r => Number(r['합계']) > 0);
+  if (!played.length) return `<div style="text-align:center;padding:20px;color:#4a6b58;font-size:12px;">아직 입력된 스코어가 없습니다.</div>`;
+
+  const teams = {};
+  played.forEach(r => {
+    const t = r['소속팀']; if (!TEAM_COLORS[t]) return;
+    if (!teams[t]) teams[t] = { name: t, gross: 0, birdies: 0, bonus: [] };
+    teams[t].gross += Number(r['합계']);
+    teams[t].birdies += birdies(r);
+  });
+  const add = (t, item) => { if (teams[t]) teams[t].bonus.push(item); };
+  Object.values(teams).sort((a, b) => a.gross - b.gross).forEach((t, i) => t.rankPt = RANK_PTS[i] ?? 0);
+
+  const medal = played.reduce((m, r) => Number(r['합계']) < Number(m['합계']) ? r : m);
+  add(medal['소속팀'], { l: '메달리스트 ' + medal['성명'], v: 10, ic: '🏅' });
+
+  /* 신페 보너스는 2차 공개(완료) 단계에서만 — 회원 화면과 동일 */
+  const npDone = (STATUS === '완료') ? played.filter(r => Number(r['NP_Handicap']) > 0) : [];
+  if (npDone.length) {
+    const males = npDone.filter(r => genderOf(r['전화번호']) === '남');
+    const fems  = npDone.filter(r => genderOf(r['전화번호']) === '여');
+    if (males.length) { const w = males.reduce((m, r) => Number(r['Net_Score']) < Number(m['Net_Score']) ? r : m); add(w['소속팀'], { l: '신페 남우승 ' + w['성명'], v: 10, ic: '🏌️' }); }
+    if (fems.length)  { const w = fems.reduce((m, r) => Number(r['Net_Score']) < Number(m['Net_Score']) ? r : m); add(w['소속팀'], { l: '신페 여우승 ' + w['성명'], v: 10, ic: '🏌️‍♀️' }); }
+    const last = npDone.reduce((m, r) => Number(r['Net_Score']) > Number(m['Net_Score']) ? r : m);
+    add(last['소속팀'], { l: '신페 꼴등 ' + last['성명'], v: -10, ic: '😢' });
+  }
+
+  EPISODES.forEach(ep => String(ep['니어리스트'] || '').split(',').forEach(ph => {
+    const p = ph.trim(); if (!p) return;
+    const r = RECORDS.find(x => x['전화번호'] === p);
+    if (r) add(r['소속팀'], { l: '니어리스트 ' + r['성명'], v: 10, ic: '🚩' });
+  }));
+
+  Object.values(teams).forEach(t => { if (t.birdies > 0) t.bonus.push({ l: '버디 ' + t.birdies + '개', v: t.birdies * 5, ic: '🐦' }); });
+
+  const list = Object.values(teams).map(t => {
+    const bsum = t.bonus.reduce((s, b) => s + b.v, 0);
+    return { ...t, bsum, total: t.rankPt + bsum };
+  }).sort((a, b) => b.total - a.total);
+
+  const warn = npDone.length === 0
+    ? note('warn', STATUS === '완료'
+        ? '⚠️ 신페리오 정산 전이라 신페 관련 보너스가 빠져 있습니다. ③단계를 먼저 실행하세요.'
+        : '① 1차 공개(스트로크) 기준 미리보기입니다. 신페 남·여 우승과 꼴등 −10은 <b>2차 공개</b>에서 합산됩니다.') : '';
+
+  return warn + list.map((t, i) => {
+    const [c, bg, tx] = TEAM_COLORS[t.name];
+    const chips = t.bonus.map(b =>
+      `<span style="display:inline-block;font-size:10px;padding:3px 7px;border-radius:999px;margin:3px 3px 0 0;
+        background:${b.v < 0 ? '#3a1414' : '#0f2a1c'};color:${b.v < 0 ? '#f0a0a0' : '#9fc4b0'};">${b.ic} ${esc(b.l)} ${b.v > 0 ? '+' : ''}${b.v}</span>`).join('');
+    return `<div style="border-left:4px solid ${c};background:#0d2717;border-radius:9px;padding:10px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:9px;">
+        <div style="width:22px;text-align:center;font-weight:800;">${i < 3 ? ['🏆','🥈','🥉'][i] : (i + 1)}</div>
+        <div class="tb" style="width:30px;height:30px;line-height:30px;font-size:13px;background:${bg};color:${tx};">${t.name[0]}</div>
+        <div style="flex:1;"><div style="font-weight:700;">${t.name}팀</div>
+          <div style="font-size:10px;color:#5a7f6a;">그로스 ${t.gross} · 순위 ${t.rankPt} + 보너스 ${t.bsum >= 0 ? '+' : ''}${t.bsum}</div></div>
+        <div style="font-size:20px;font-weight:800;color:${c};">${t.total}</div>
+      </div>
+      <div style="padding-left:31px;">${chips}</div>
+    </div>`;
+  }).join('');
+}
+
+loadAll();
+</script>
+</body>
+</html>

@@ -120,10 +120,12 @@ function countBirdies(r) {
 
 function renderFinal() {
   const el = document.getElementById('v-final');
-  if (STATUS !== '완료') {
-    el.innerHTML = soonHtml('최종 종합은 시상식에서 공개됩니다', '순위점수 + 메달·신페·버디·니어 합산');
+  /* 공개 2단계 — 마감: 스트로크 기준 / 완료: 신페까지 전체 */
+  if (STATUS === '진행중') {
+    el.innerHTML = soonHtml('최종 종합은 라운드 종료 후 공개됩니다', '순위점수 + 메달·신페·버디·니어 합산');
     return;
   }
+  const FULL = (STATUS === '완료');
   const played = RECORDS.filter(r => Number(r['합계']) > 0);
   if (played.length === 0) { el.innerHTML = soonHtml('집계 중입니다', ''); return; }
 
@@ -141,12 +143,16 @@ function renderFinal() {
   const medal = played.reduce((m,r)=> Number(r['합계']) < Number(m['합계']) ? r : m);
   add(medal['소속팀'], { l:'메달리스트 '+nick(medal['전화번호']), v:10, ic:'🏅' });
 
-  const males = played.filter(r=>gender(r['전화번호'])==='남');
-  const females = played.filter(r=>gender(r['전화번호'])==='여');
-  if (males.length) { const w=males.reduce((m,r)=>Number(r['Net_Score'])<Number(m['Net_Score'])?r:m); add(w['소속팀'],{l:'신페 남우승 '+nick(w['전화번호']),v:10,ic:'🏌️'}); }
-  if (females.length) { const w=females.reduce((m,r)=>Number(r['Net_Score'])<Number(m['Net_Score'])?r:m); add(w['소속팀'],{l:'신페 여우승 '+nick(w['전화번호']),v:10,ic:'🏌️‍♀️'}); }
-  const last = played.reduce((m,r)=> Number(r['Net_Score']) > Number(m['Net_Score']) ? r : m);
-  add(last['소속팀'], { l:'신페 꼴등 '+nick(last['전화번호']), v:-10, ic:'😢' });
+  /* 신페 관련 보너스는 2차 공개(완료) 단계에서만 합산 */
+  const npDone = FULL ? played.filter(r => Number(r['NP_Handicap']) > 0) : [];
+  if (npDone.length) {
+    const males = npDone.filter(r=>gender(r['전화번호'])==='남');
+    const females = npDone.filter(r=>gender(r['전화번호'])==='여');
+    if (males.length) { const w=males.reduce((m,r)=>Number(r['Net_Score'])<Number(m['Net_Score'])?r:m); add(w['소속팀'],{l:'신페 남우승 '+nick(w['전화번호']),v:10,ic:'🏌️'}); }
+    if (females.length) { const w=females.reduce((m,r)=>Number(r['Net_Score'])<Number(m['Net_Score'])?r:m); add(w['소속팀'],{l:'신페 여우승 '+nick(w['전화번호']),v:10,ic:'🏌️‍♀️'}); }
+    const last = npDone.reduce((m,r)=> Number(r['Net_Score']) > Number(m['Net_Score']) ? r : m);
+    add(last['소속팀'], { l:'신페 꼴등 '+nick(last['전화번호']), v:-10, ic:'😢' });
+  }
 
   NEAREST.forEach(n => add(n.team, { l:'니어리스트 '+(n.nick||''), v:10, ic:'🚩' }));
 
@@ -157,7 +163,11 @@ function renderFinal() {
     return { ...t, bsum, total: t.rankPt + bsum };
   }).sort((a,b)=> b.total - a.total);
 
-  el.innerHTML = `<div class="hint">순위점수 + 보너스 종합 · 최종 결과</div>` + list.map((t,i) => {
+  const banner = FULL
+    ? `<div class="hint">순위점수 + 보너스 종합 · 최종 결과</div>`
+    : `<div class="hint" style="color:#e8d5a3;">1차 공개 · 스트로크 기준 중간 집계<br>
+        <span style="color:#5a7f6a;">신페 남·여 우승과 꼴등 −10은 시상식에서 합산됩니다</span></div>`;
+  el.innerHTML = banner + list.map((t,i) => {
     const [c,bg,tx] = TEAM_COLORS[t.name];
     const trophy = i<3 ? ['🏆','🥈','🥉'][i] : `<span style="color:#5a7f6a;">${i+1}</span>`;
     const chips = t.bonus.map(b => `<span style="display:inline-block; font-size:11px; padding:3px 8px; border-radius:999px; margin:3px 4px 0 0; background:${b.v<0?'#3a1414':'#0f2a1c'}; color:${b.v<0?'#f0a0a0':'#9fc4b0'};">${b.ic} ${esc(b.l)} ${b.v>0?'+':''}${b.v}</span>`).join('');
@@ -289,11 +299,21 @@ function awardTitle(played) {
 }
 function renderAward() {
   const el = document.getElementById('v-award');
-  if (STATUS !== '완료') { el.innerHTML = soonHtml('개인시상은 시상식에서 공개됩니다', '신페리오 · 스트로크 · 번외타이틀'); return; }
+  if (STATUS === '진행중') { el.innerHTML = soonHtml('개인시상은 라운드 종료 후 공개됩니다', '신페리오 · 스트로크 · 번외타이틀'); return; }
+  const FULL = (STATUS === '완료');
   const played = RECORDS.filter(r => Number(r['합계']) > 0);
   if (played.length === 0) { el.innerHTML = soonHtml('집계 중입니다', ''); return; }
-  const subs=[['np','🎯 신페리오'],['str','⛳ 스트로크'],['title','🏅 번외타이틀']];
-  let html=`<div style="display:flex;gap:5px;margin-bottom:12px;">`+
+  /* 1차 공개(마감)에서는 신페리오 순위를 감춤 */
+  const hasHoles = played.some(r => r['H1'] !== null && r['H1'] !== undefined);
+  const subs = [];
+  if (FULL) subs.push(['np','🎯 신페리오']);
+  subs.push(['str','⛳ 스트로크']);
+  if (hasHoles) subs.push(['title','🏅 번외타이틀']);   /* 홀별 스코어가 있어야 의미 있음 */
+  if (!subs.some(s => s[0] === AWARD_SUB)) AWARD_SUB = 'str';
+  let html = FULL ? '' :
+    `<div class="hint" style="color:#e8d5a3;">1차 공개 · 스트로크 기준<br>
+      <span style="color:#5a7f6a;">🎯 신페리오 순위는 시상식에서 공개됩니다</span></div>`;
+  html += `<div style="display:flex;gap:5px;margin-bottom:12px;">`+
     subs.map(([k,l])=>`<button onclick="AWARD_SUB='${k}';renderAward();" style="flex:1;border:none;border-radius:8px;padding:8px 4px;font-size:11px;font-weight:700;cursor:pointer;background:${AWARD_SUB===k?'#2d5a3d':'#0f2a1c'};color:${AWARD_SUB===k?'#e8d5a3':'#8faa97'};white-space:nowrap;">${l}</button>`).join('')+`</div>`;
   html+=`<div class="tcard" style="border-left:none;padding:6px 10px 10px;">`;
   html+= AWARD_SUB==='np' ? awardNP(played) : AWARD_SUB==='str' ? awardStroke(played) : awardTitle(played);
