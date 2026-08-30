@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>제1회 고카 정모 · 팀 대항전</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { font-family:'Noto Sans KR',-apple-system,sans-serif; background:#0a1f14; color:#d4e4da; min-height:100vh; padding-bottom:40px; }
+  .wrap { max-width:460px; margin:0 auto; padding:0 12px; }
+  .hdr { text-align:center; padding:18px 0 10px; }
+  .hdr .ti { font-size:11px; color:#8faa97; letter-spacing:1.5px; }
+  .hdr h1 { font-size:21px; color:#e8d5a3; margin-top:2px; font-weight:800; }
+  .back { position:absolute; left:16px; top:18px; color:#8faa97; text-decoration:none; font-size:13px; }
+  .tabs { display:flex; gap:6px; background:#0f2a1c; border-radius:999px; padding:4px; margin:12px 0 16px; }
+  .tab { flex:1; border:none; border-radius:999px; padding:9px 0; font-size:13px; font-weight:700; cursor:pointer; background:transparent; color:#8faa97; }
+  .tab.active { background:#2d5a3d; color:#e8d5a3; }
+  .hint { font-size:11px; color:#5a7f6a; text-align:center; margin-bottom:12px; }
+  .tcard { border-radius:12px; background:#12321f; border:1px solid #1e3a2a; margin-bottom:9px; overflow:hidden; border-left:4px solid #666; }
+  .trow { display:flex; align-items:center; gap:10px; padding:12px 11px; cursor:pointer; }
+  .rankico { width:26px; text-align:center; font-size:15px; font-weight:800; }
+  .tbadge { width:36px; height:36px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; }
+  .tname { font-size:15px; font-weight:700; color:#eef6f0; }
+  .tsub { font-size:11px; color:#5a7f6a; margin-top:1px; }
+  .tover { font-size:20px; font-weight:800; line-height:1; }
+  .chev { font-size:13px; color:#5a7f6a; transition:transform .2s; margin-left:4px; }
+  .roster { display:none; border-top:1px solid #1e3a2a; background:#0d2717; padding:5px 10px 9px; }
+  .roster .rlbl { font-size:10px; color:#5a7f6a; padding:6px 6px 3px; }
+  .prow { display:flex; justify-content:space-between; align-items:center; padding:6px 6px; font-size:13px; border-bottom:1px solid #14301e; }
+  .prow:last-child { border-bottom:none; }
+  .pname { color:#d4e4da; } .pnick { color:#7a9b88; font-size:11px; margin-left:4px; }
+  .pover { font-weight:700; }
+  .empty { text-align:center; padding:50px 20px; color:#5a7f6a; }
+  .empty .big { font-size:40px; margin-bottom:14px; }
+  .soon { text-align:center; padding:44px 20px; color:#6b8f77; }
+  .soon .big { font-size:34px; margin-bottom:12px; }
+  .loading { text-align:center; padding:60px; color:#5a7f6a; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="index.html" class="back">‹ 앱으로</a>
+  <div class="hdr">
+    <div class="ti">GOLFriend Since 2026</div>
+    <h1>🏆 제1회 고카 정모</h1>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" id="t-live" onclick="showTab('live')">라운드 중</button>
+    <button class="tab" id="t-final" onclick="showTab('final')">최종 종합</button>
+    <button class="tab" id="t-award" onclick="showTab('award')">개인시상</button>
+  </div>
+
+  <div id="v-live"><div class="loading">불러오는 중…</div></div>
+  <div id="v-final" style="display:none;"></div>
+  <div id="v-award" style="display:none;"></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://ogyzzmlxxmplwaawraoc.supabase.co';
+const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9neXp6bWx4eG1wbHdhYXdyYW9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMTM2NTIsImV4cCI6MjA5NDc4OTY1Mn0.ih7nCSWSnSlTmqweo8F_8ZOrRQ6sWYVgQXsK7R6b9V0';
+const MATCH_ID = 20260913;
+const BASE_PAR = 72;
+const RANK_PTS = [100, 90, 80, 70];
+const TEAM_ORDER = ['레드','네이비','화이트','블랙'];
+const TEAM_COLORS = {
+  '레드':   ['#E24B4A','#3a1414','#f0a0a0'],
+  '네이비': ['#378ADD','#0e2540','#9fc4ef'],
+  '화이트': ['#b8b6ad','#2a2a26','#e8e6dd'],
+  '블랙':   ['#888',   '#232323','#cfcfcf'],
+};
+
+let MEMBERS = {}, RECORDS = [];
+
+function sb(table, params='') {
+  return fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*${params}`, {
+    headers: { apikey: KEY, Authorization: 'Bearer ' + KEY }
+  }).then(r => r.json());
+}
+function nick(phone) {
+  const m = MEMBERS[phone];
+  return m ? (m['닉네임'] || m['성명']) : phone;
+}
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+async function load() {
+  try {
+    const [mems, recs] = await Promise.all([
+      sb('tb_member'),
+      sb('tb_Record', `&대회번호=eq.${MATCH_ID}`)
+    ]);
+    mems.forEach(m => MEMBERS[m['전화번호']] = m);
+    RECORDS = recs || [];
+    renderLive();
+    document.getElementById('v-final').innerHTML = soonHtml('최종 종합은 시상식에서 공개됩니다', '순위점수 + 메달·신페·버디·니어 합산');
+    document.getElementById('v-award').innerHTML = soonHtml('개인시상은 준비 중입니다', '메달리스트 · 신페 · 버디왕 · 니어리스트');
+  } catch(e) {
+    document.getElementById('v-live').innerHTML = `<div class="empty"><div class="big">⚠️</div>데이터를 불러오지 못했습니다.<br>잠시 후 새로고침 해주세요.</div>`;
+  }
+}
+
+function renderLive() {
+  const el = document.getElementById('v-live');
+  const played = RECORDS.filter(r => Number(r['합계']) > 0);
+  if (played.length === 0) {
+    el.innerHTML = `<div class="empty"><div class="big">⛳</div><b style="color:#e8d5a3;">9월 13일 대항전 준비 중</b><br><span style="font-size:12px;">라운드가 시작되면 팀 순위가 실시간으로 올라옵니다.</span></div>`;
+    return;
+  }
+  const teams = {};
+  played.forEach(r => {
+    const t = r['소속팀']; if (!TEAM_COLORS[t]) return;
+    if (!teams[t]) teams[t] = { name:t, players:[], over:0 };
+    const ov = Number(r['합계']) - BASE_PAR;
+    teams[t].players.push({ phone:r['전화번호'], over:ov });
+    teams[t].over += ov;
+  });
+  const list = Object.values(teams).sort((a,b) => a.over - b.over);
+  list.forEach((t,i) => t.rankPt = RANK_PTS[i] ?? 0);
+
+  el.innerHTML = `<div class="hint">팀 합산 오버파 · 팀을 누르면 선수별 기록</div>` + list.map((t,i) => {
+    const [c,bg,tx] = TEAM_COLORS[t.name];
+    const medal = i<3 ? ['🥇','🥈','🥉'][i] : `<span style="color:#5a7f6a;">${i+1}</span>`;
+    const roster = [...t.players].sort((a,b)=>a.over-b.over).map(p => `
+      <div class="prow"><span class="pname">${esc(nick(p.phone))}</span>
+      <span class="pover" style="color:${c};">${p.over>=0?'+':''}${p.over}</span></div>`).join('');
+    return `<div class="tcard" style="border-left-color:${c};">
+      <div class="trow" onclick="toggle('${t.name}')">
+        <div class="rankico">${medal}</div>
+        <div class="tbadge" style="background:${bg};color:${tx};">${t.name[0]}</div>
+        <div style="flex:1;"><div class="tname">${t.name}팀</div>
+          <div class="tsub">합산 ${t.over>=0?'+':''}${t.over} · 순위점수 ${t.rankPt}점 · ${t.players.length}명</div></div>
+        <div style="text-align:right;display:flex;align-items:center;">
+          <div class="tover" style="color:${c};">${t.over>=0?'+':''}${t.over}</div>
+          <i class="chev" id="ch-${t.name}">▼</i></div>
+      </div>
+      <div class="roster" id="rs-${t.name}"><div class="rlbl">선수별 오버파 (낮은 순)</div>${roster}</div>
+    </div>`;
+  }).join('');
+}
+
+function toggle(name) {
+  const rs = document.getElementById('rs-'+name), ch = document.getElementById('ch-'+name);
+  const open = rs.style.display !== 'block';
+  rs.style.display = open ? 'block' : 'none';
+  ch.style.transform = open ? 'rotate(180deg)' : 'rotate(0)';
+}
+function soonHtml(title, sub) {
+  return `<div class="soon"><div class="big">🔒</div><b style="color:#e8d5a3;">${title}</b><br><span style="font-size:12px;">${sub}</span></div>`;
+}
+function showTab(w) {
+  ['live','final','award'].forEach(k => {
+    document.getElementById('v-'+k).style.display = k===w ? 'block' : 'none';
+    document.getElementById('t-'+k).classList.toggle('active', k===w);
+  });
+}
+load();
+</script>
+</body>
+</html>
