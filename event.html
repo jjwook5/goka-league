@@ -93,6 +93,13 @@ async function load() {
     mems.forEach(m => MEMBERS[m['전화번호']] = m);
     RECORDS = recs || [];
     STATUS = (eps[0] && eps[0]['완료구분']) || '진행중';
+    /* 니어리스트: tb_Match_Episodes.니어리스트(전화번호 쉼표구분) → 해당 팀 +10 (최종 종합용) */
+    NEAREST = [];
+    eps.forEach(e => { if (e['니어리스트']) String(e['니어리스트']).split(',').forEach(p => {
+      const ph = p.trim(); if (!ph) return;
+      const r = RECORDS.find(x => String(x['전화번호']) === ph);
+      if (r) NEAREST.push({ team: r['소속팀'], nick: nick(ph) });
+    }); });
     renderLive();
     renderFinal();
     renderAward();
