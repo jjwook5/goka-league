@@ -70,7 +70,7 @@ const TEAM_COLORS = {
   '블랙':   ['#888',   '#232323','#cfcfcf'],
 };
 
-let MEMBERS = {}, RECORDS = [];
+let MEMBERS = {}, RECORDS = [], STATUS = '진행중', NEAREST = [];
 
 function sb(table, params='') {
   return fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*${params}`, {
@@ -85,18 +85,87 @@ function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;',
 
 async function load() {
   try {
-    const [mems, recs] = await Promise.all([
+    const [mems, recs, eps] = await Promise.all([
       sb('tb_member'),
-      sb('tb_Record', `&대회번호=eq.${MATCH_ID}`)
+      sb('tb_Record', `&대회번호=eq.${MATCH_ID}`),
+      sb('tb_Match_Episodes', `&대회번호=eq.${MATCH_ID}`)
     ]);
     mems.forEach(m => MEMBERS[m['전화번호']] = m);
     RECORDS = recs || [];
+    STATUS = (eps[0] && eps[0]['완료구분']) || '진행중';
     renderLive();
-    document.getElementById('v-final').innerHTML = soonHtml('최종 종합은 시상식에서 공개됩니다', '순위점수 + 메달·신페·버디·니어 합산');
+    renderFinal();
     document.getElementById('v-award').innerHTML = soonHtml('개인시상은 준비 중입니다', '메달리스트 · 신페 · 버디왕 · 니어리스트');
   } catch(e) {
     document.getElementById('v-live').innerHTML = `<div class="empty"><div class="big">⚠️</div>데이터를 불러오지 못했습니다.<br>잠시 후 새로고침 해주세요.</div>`;
   }
+}
+
+function gender(phone) {
+  const p = String(phone).split('-');
+  return p[1] === '2000' ? '여' : '남';
+}
+function countBirdies(r) {
+  let b = 0;
+  for (let i = 1; i <= 18; i++) if (Number(r['H'+i]) === -1) b++;
+  return b;
+}
+
+function renderFinal() {
+  const el = document.getElementById('v-final');
+  if (STATUS !== '완료') {
+    el.innerHTML = soonHtml('최종 종합은 시상식에서 공개됩니다', '순위점수 + 메달·신페·버디·니어 합산');
+    return;
+  }
+  const played = RECORDS.filter(r => Number(r['합계']) > 0);
+  if (played.length === 0) { el.innerHTML = soonHtml('집계 중입니다', ''); return; }
+
+  const teams = {};
+  played.forEach(r => {
+    const t = r['소속팀']; if (!TEAM_COLORS[t]) return;
+    if (!teams[t]) teams[t] = { name:t, gross:0, birdies:0, bonus:[] };
+    teams[t].gross += Number(r['합계']);
+    teams[t].birdies += countBirdies(r);
+  });
+  const add = (team, item) => { if (teams[team]) teams[team].bonus.push(item); };
+
+  Object.values(teams).sort((a,b)=>a.gross-b.gross).forEach((t,i)=> t.rankPt = RANK_PTS[i] ?? 0);
+
+  const medal = played.reduce((m,r)=> Number(r['합계']) < Number(m['합계']) ? r : m);
+  add(medal['소속팀'], { l:'메달리스트 '+nick(medal['전화번호']), v:10, ic:'🏅' });
+
+  const males = played.filter(r=>gender(r['전화번호'])==='남');
+  const females = played.filter(r=>gender(r['전화번호'])==='여');
+  if (males.length) { const w=males.reduce((m,r)=>Number(r['Net_Score'])<Number(m['Net_Score'])?r:m); add(w['소속팀'],{l:'신페 남우승 '+nick(w['전화번호']),v:10,ic:'🏌️'}); }
+  if (females.length) { const w=females.reduce((m,r)=>Number(r['Net_Score'])<Number(m['Net_Score'])?r:m); add(w['소속팀'],{l:'신페 여우승 '+nick(w['전화번호']),v:10,ic:'🏌️‍♀️'}); }
+  const last = played.reduce((m,r)=> Number(r['Net_Score']) > Number(m['Net_Score']) ? r : m);
+  add(last['소속팀'], { l:'신페 꼴등 '+nick(last['전화번호']), v:-10, ic:'😢' });
+
+  NEAREST.forEach(n => add(n.team, { l:'니어리스트 '+(n.nick||''), v:10, ic:'🚩' }));
+
+  Object.values(teams).forEach(t => { if (t.birdies>0) t.bonus.push({ l:'버디 '+t.birdies+'개', v:t.birdies*5, ic:'🐦' }); });
+
+  const list = Object.values(teams).map(t => {
+    const bsum = t.bonus.reduce((s,b)=>s+b.v,0);
+    return { ...t, bsum, total: t.rankPt + bsum };
+  }).sort((a,b)=> b.total - a.total);
+
+  el.innerHTML = `<div class="hint">순위점수 + 보너스 종합 · 최종 결과</div>` + list.map((t,i) => {
+    const [c,bg,tx] = TEAM_COLORS[t.name];
+    const trophy = i<3 ? ['🏆','🥈','🥉'][i] : `<span style="color:#5a7f6a;">${i+1}</span>`;
+    const chips = t.bonus.map(b => `<span style="display:inline-block; font-size:11px; padding:3px 8px; border-radius:999px; margin:3px 4px 0 0; background:${b.v<0?'#3a1414':'#0f2a1c'}; color:${b.v<0?'#f0a0a0':'#9fc4b0'};">${b.ic} ${esc(b.l)} ${b.v>0?'+':''}${b.v}</span>`).join('');
+    return `<div class="tcard" style="border-left-color:${c}; cursor:default;">
+      <div class="trow" style="cursor:default;">
+        <div class="rankico">${trophy}</div>
+        <div class="tbadge" style="background:${bg};color:${tx};">${t.name[0]}</div>
+        <div style="flex:1;"><div class="tname">${t.name}팀</div>
+          <div class="tsub">순위 ${t.rankPt} + 보너스 ${t.bsum>=0?'+':''}${t.bsum}</div></div>
+        <div style="text-align:right;"><div class="tover" style="color:${c};font-size:23px;">${t.total}</div>
+          <div style="font-size:10px;color:#5a7f6a;">총점</div></div>
+      </div>
+      <div style="padding:0 11px 11px 47px;">${chips}</div>
+    </div>`;
+  }).join('');
 }
 
 function renderLive() {
