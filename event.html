@@ -132,57 +132,91 @@ function renderFinal() {
   const teams = {};
   played.forEach(r => {
     const t = r['소속팀']; if (!TEAM_COLORS[t]) return;
-    if (!teams[t]) teams[t] = { name:t, gross:0, birdies:0, bonus:[] };
+    if (!teams[t]) teams[t] = { name:t, gross:0, birdies:0, awards:[], bp:[] };
     teams[t].gross += Number(r['합계']);
-    teams[t].birdies += countBirdies(r);
+    const b = countBirdies(r);
+    if (b > 0) { teams[t].birdies += b; teams[t].bp.push({ nick: nick(r['전화번호']), cnt: b }); }
   });
-  const add = (team, item) => { if (teams[team]) teams[team].bonus.push(item); };
+  const add = (team, item) => { if (teams[team]) teams[team].awards.push(item); };
 
-  Object.values(teams).sort((a,b)=>a.gross-b.gross).forEach((t,i)=> t.rankPt = RANK_PTS[i] ?? 0);
+  /* ① 팀 대항 스트로크 — 팀 합산 그로스 낮은 순 */
+  Object.values(teams).sort((a,b)=>a.gross-b.gross).forEach((t,i)=>{ t.rankPt = RANK_PTS[i] ?? 0; t.rank = i+1; });
 
-  const medal = played.reduce((m,r)=> Number(r['합계']) < Number(m['합계']) ? r : m);
+  /* ② 수상 — 동점자는 백카운트까지 적용해 선정 */
+  const medal = [...played].sort(cmpStroke)[0];
   add(medal['소속팀'], { l:'메달리스트 '+nick(medal['전화번호']), v:10, ic:'🏅' });
 
   /* 신페 관련 보너스는 2차 공개(완료) 단계에서만 합산 */
   const npDone = FULL ? played.filter(r => Number(r['NP_Handicap']) > 0) : [];
   if (npDone.length) {
-    const males = npDone.filter(r=>gender(r['전화번호'])==='남');
-    const females = npDone.filter(r=>gender(r['전화번호'])==='여');
-    if (males.length) { const w=males.reduce((m,r)=>Number(r['Net_Score'])<Number(m['Net_Score'])?r:m); add(w['소속팀'],{l:'신페 남우승 '+nick(w['전화번호']),v:10,ic:'🏌️'}); }
-    if (females.length) { const w=females.reduce((m,r)=>Number(r['Net_Score'])<Number(m['Net_Score'])?r:m); add(w['소속팀'],{l:'신페 여우승 '+nick(w['전화번호']),v:10,ic:'🏌️‍♀️'}); }
-    const last = npDone.reduce((m,r)=> Number(r['Net_Score']) > Number(m['Net_Score']) ? r : m);
+    const males   = npDone.filter(r=>gender(r['전화번호'])==='남').sort(cmpNet);
+    const females = npDone.filter(r=>gender(r['전화번호'])==='여').sort(cmpNet);
+    if (males.length)   add(males[0]['소속팀'],   { l:'신페 남우승 '+nick(males[0]['전화번호']),   v:10, ic:'🏌️' });
+    if (females.length) add(females[0]['소속팀'], { l:'신페 여우승 '+nick(females[0]['전화번호']), v:10, ic:'🏌️‍♀️' });
+    const sorted = [...npDone].sort(cmpNet);
+    const last = sorted[sorted.length-1];
     add(last['소속팀'], { l:'신페 꼴등 '+nick(last['전화번호']), v:-10, ic:'😢' });
   }
 
   NEAREST.forEach(n => add(n.team, { l:'니어리스트 '+(n.nick||''), v:10, ic:'🚩' }));
 
-  Object.values(teams).forEach(t => { if (t.birdies>0) t.bonus.push({ l:'버디 '+t.birdies+'개', v:t.birdies*5, ic:'🐦' }); });
-
   const list = Object.values(teams).map(t => {
-    const bsum = t.bonus.reduce((s,b)=>s+b.v,0);
-    return { ...t, bsum, total: t.rankPt + bsum };
-  }).sort((a,b)=> b.total - a.total);
+    const aw = t.awards.reduce((s,b)=>s+b.v,0);
+    const bd = t.birdies * 5;
+    return { ...t, aw, bd, total: t.rankPt + aw + bd };
+  }).sort((a,b)=> b.total - a.total || a.gross - b.gross);
 
   const banner = FULL
-    ? `<div class="hint">순위점수 + 보너스 종합 · 최종 결과</div>`
+    ? `<div class="hint">팀을 누르면 점수 산출 내역이 펼쳐집니다</div>`
     : `<div class="hint" style="color:#e8d5a3;">1차 공개 · 스트로크 기준 중간 집계<br>
         <span style="color:#5a7f6a;">신페 남·여 우승과 꼴등 −10은 시상식에서 합산됩니다</span></div>`;
+
   el.innerHTML = banner + list.map((t,i) => {
     const [c,bg,tx] = TEAM_COLORS[t.name];
     const trophy = i<3 ? ['🏆','🥈','🥉'][i] : `<span style="color:#5a7f6a;">${i+1}</span>`;
-    const chips = t.bonus.map(b => `<span style="display:inline-block; font-size:11px; padding:3px 8px; border-radius:999px; margin:3px 4px 0 0; background:${b.v<0?'#3a1414':'#0f2a1c'}; color:${b.v<0?'#f0a0a0':'#9fc4b0'};">${b.ic} ${esc(b.l)} ${b.v>0?'+':''}${b.v}</span>`).join('');
-    return `<div class="tcard" style="border-left-color:${c}; cursor:default;">
-      <div class="trow" style="cursor:default;">
+    const pt = v => `<span class="pover" style="color:${v<0?'#ef4444':v>0?'#7fc99a':'#5a7f6a'};">${v>0?'+':''}${v}</span>`;
+    const line = (label, v) => `<div class="prow"><span class="pname">${label}</span>${pt(v)}</div>`;
+
+    const awardRows = t.awards.length
+      ? t.awards.map(a => line(`${a.ic} ${esc(a.l)}`, a.v)).join('')
+      : `<div class="prow"><span class="pname" style="color:#4a6b58;">해당 없음</span><span class="pover" style="color:#4a6b58;">0</span></div>`;
+
+    const birdieRows = t.bp.length
+      ? [...t.bp].sort((a,b)=>b.cnt-a.cnt).map(p => line(`${esc(p.nick)} <span style="color:#5a7f6a;">${p.cnt}개</span>`, p.cnt*5)).join('')
+      : `<div class="prow"><span class="pname" style="color:#4a6b58;">버디 없음</span><span class="pover" style="color:#4a6b58;">0</span></div>`;
+
+    return `<div class="tcard" style="border-left-color:${c};">
+      <div class="trow" onclick="toggleF('${t.name}')">
         <div class="rankico">${trophy}</div>
         <div class="tbadge" style="background:${bg};color:${tx};">${t.name[0]}</div>
         <div style="flex:1;"><div class="tname">${t.name}팀</div>
-          <div class="tsub">순위 ${t.rankPt} + 보너스 ${t.bsum>=0?'+':''}${t.bsum}</div></div>
-        <div style="text-align:right;"><div class="tover" style="color:${c};font-size:23px;">${t.total}</div>
-          <div style="font-size:10px;color:#5a7f6a;">총점</div></div>
+          <div class="tsub">스트로크 ${t.rankPt} · 수상 ${t.aw>=0?'+':''}${t.aw} · 버디 +${t.bd}</div></div>
+        <div style="text-align:right;display:flex;align-items:center;">
+          <div><div class="tover" style="color:${c};font-size:23px;">${t.total}</div>
+            <div style="font-size:10px;color:#5a7f6a;">총점</div></div>
+          <i class="chev" id="chf-${t.name}">▼</i></div>
       </div>
-      <div style="padding:0 11px 11px 47px;">${chips}</div>
+      <div class="roster" id="rsf-${t.name}">
+        <div class="rlbl">① 팀 대항 스트로크 — 합산 ${t.gross}타 · ${t.rank}위</div>
+        ${line(`팀 순위 <b style="color:#d4e4da;">${t.rank}위</b> 배점`, t.rankPt)}
+        <div class="rlbl">② 수상</div>
+        ${awardRows}
+        <div class="rlbl">③ 버디 — 총 ${t.birdies}개 × 5점 <span style="color:#4a6b58;">(이글은 0점)</span></div>
+        ${birdieRows}
+        <div class="prow" style="border-top:1px solid #2d5a3d; margin-top:5px; padding-top:9px;">
+          <span class="pname" style="font-weight:800; color:#e8d5a3;">합계</span>
+          <span class="pover" style="color:${c}; font-size:17px;">${t.rankPt} ${t.aw>=0?'+':'−'} ${Math.abs(t.aw)} + ${t.bd} = <b>${t.total}</b></span>
+        </div>
+      </div>
     </div>`;
   }).join('');
+}
+
+function toggleF(name) {
+  const rs = document.getElementById('rsf-'+name), ch = document.getElementById('chf-'+name);
+  const open = rs.style.display !== 'block';
+  rs.style.display = open ? 'block' : 'none';
+  ch.style.transform = open ? 'rotate(180deg)' : 'rotate(0)';
 }
 
 function renderLive() {
@@ -241,10 +275,24 @@ function compareBackAward(a, b) {
   for (let i = 18; i >= 10; i--) { const va=Number(a['H'+i])||0, vb=Number(b['H'+i])||0; if (va!==vb) return va-vb; }
   return 0;
 }
+/* ═══ 동점자 처리 (오름차순 = 잘한 순) ═══
+   스트로크 : 합계 낮은 순 → 백카운트
+   신페리오 : Net 낮은 순 → 합산 높은 순(재미) → 백카운트
+   시상자 선정(메달·신페 남/여 우승·꼴등)도 이 기준을 그대로 사용 */
+function cmpStroke(a, b) {
+  const g = Number(a['합계']) - Number(b['합계']); if (g) return g;
+  return compareBackAward(a, b);
+}
+function cmpNet(a, b) {
+  const n = Number(a['Net_Score']) - Number(b['Net_Score']); if (n) return n;
+  const g = Number(b['합계']) - Number(a['합계']); if (g) return g;
+  return compareBackAward(a, b);
+}
+/* 이글(-2 이하)은 버디로 세지 않음 — 팀 보너스도 버디(-1)만 +5 */
 function countTypes(r) {
-  let b=0,p=0,bg=0,d=0;
-  for (let i=1;i<=18;i++){ const s=Number(r['H'+i]); if(r['H'+i]!=null&&!isNaN(s)){ if(s<0)b++; else if(s===0)p++; else if(s===1)bg++; else d++; } }
-  return {b,p,bg,d};
+  let e=0,b=0,p=0,bg=0,d=0;
+  for (let i=1;i<=18;i++){ const s=Number(r['H'+i]); if(r['H'+i]!=null&&!isNaN(s)){ if(s<=-2)e++; else if(s===-1)b++; else if(s===0)p++; else if(s===1)bg++; else d++; } }
+  return {e,b,p,bg,d};
 }
 function rankColor(rk){ return rk===1?'#e8d5a3':rk===2?'#c0c0c0':rk===3?'#b87333':'#5a7f6a'; }
 function nameCell(r) {
@@ -255,11 +303,7 @@ function nameCell(r) {
 let AWARD_SUB = 'np';
 
 function awardNP(played) {
-  const rows = [...played].sort((a,b)=>{
-    const n=Number(a['Net_Score'])-Number(b['Net_Score']); if(n)return n;
-    const g=Number(b['합계'])-Number(a['합계']); if(g)return g;
-    return compareBackAward(a,b);
-  });
+  const rows = [...played].sort(cmpNet);   /* Net → 합산 높은 순 → 백카운트 */
   rows.forEach((r,i)=>{ if(i===0){r._rk=1;return;} const p=rows[i-1];
     const same=Number(r['Net_Score'])===Number(p['Net_Score'])&&Number(r['합계'])===Number(p['합계'])&&compareBackAward(r,p)===0;
     r._rk=same?p._rk:i+1; });
@@ -277,7 +321,7 @@ function awardNP(played) {
     <th style="width:24px;">#</th><th style="text-align:left;">선수</th><th>합산</th><th>Net</th><th>HDCP</th><th>Luck</th></tr></thead><tbody>${body}</tbody></table>`;
 }
 function awardStroke(played) {
-  const rows=[...played].sort((a,b)=>{const g=Number(a['합계'])-Number(b['합계']);if(g)return g;return compareBackAward(a,b);});
+  const rows=[...played].sort(cmpStroke);   /* 합계 → 백카운트 */
   rows.forEach((r,i)=>{if(i===0){r._sk=1;return;}const p=rows[i-1];const same=Number(r['합계'])===Number(p['합계'])&&compareBackAward(r,p)===0;r._sk=same?p._sk:i+1;});
   const body=rows.map(r=>`<tr style="font-size:12px;border-top:1px solid #14301e;">
     <td style="color:${rankColor(r._sk)};font-weight:800;text-align:center;">${r._sk}</td>
@@ -287,15 +331,19 @@ function awardStroke(played) {
     <th style="width:24px;">#</th><th style="text-align:left;">선수</th><th>그로스</th></tr></thead><tbody>${body}</tbody></table>`;
 }
 function awardTitle(played) {
-  const rows=played.map(r=>({r,...countTypes(r)})).sort((a,b)=>b.b-a.b);
+  /* 버디는 -1만 카운트(팀 보너스와 동일 기준). 이글은 나온 경우에만 별도 열로 표시 */
+  const rows=played.map(r=>({r,...countTypes(r)})).sort((a,b)=>b.b-a.b || b.e-a.e);
+  const anyEagle = rows.some(x=>x.e>0);
+  const eagleTh = anyEagle ? `<th>🦅이글</th>` : '';
   const body=rows.map((x,i)=>`<tr style="font-size:12px;border-top:1px solid #14301e;">
     <td style="text-align:left;padding:7px 4px;">${i+1}. ${nameCell(x.r)}</td>
+    ${anyEagle ? `<td style="text-align:center;color:#a855f7;font-weight:700;">${x.e||''}</td>` : ''}
     <td style="text-align:center;color:#3b82f6;font-weight:700;">${x.b}</td>
     <td style="text-align:center;color:#22c55e;">${x.p}</td>
     <td style="text-align:center;color:#eab308;">${x.bg}</td>
     <td style="text-align:center;color:#ef4444;">${x.d}</td></tr>`).join('');
   return `<table style="width:100%;border-collapse:collapse;"><thead><tr style="color:#8faa97;font-size:10px;">
-    <th style="text-align:left;">선수</th><th>🐦버디</th><th>파</th><th>보기</th><th>더블+</th></tr></thead><tbody>${body}</tbody></table>`;
+    <th style="text-align:left;">선수</th>${eagleTh}<th>🐦버디</th><th>파</th><th>보기</th><th>더블+</th></tr></thead><tbody>${body}</tbody></table>`;
 }
 function renderAward() {
   const el = document.getElementById('v-award');

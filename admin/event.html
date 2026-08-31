@@ -629,7 +629,7 @@ function renderTab3() {
     ? `<div style="text-align:center;padding:20px;color:#4a6b58;font-size:12px;">아직 정산 전입니다.</div>`
     : `<div class="scroll"><table class="grid" style="width:100%;font-size:12px;">
         <thead><tr><th style="text-align:left;">선수</th><th>합계</th><th>HDCP</th><th>Net</th><th>Luck</th></tr></thead>
-        <tbody>${[...done].sort((a, b) => Number(a['Net_Score']) - Number(b['Net_Score'])).map((r, i) => `
+        <tbody>${[...done].sort(cmpNet).map((r, i) => `
           <tr style="border-top:1px solid #14301e;">
             <td style="text-align:left;padding:6px 3px;">${i + 1}. ${teamBadge(r['소속팀'])} ${esc(r['성명'])}</td>
             <td style="text-align:center;">${Number(r['합계'])}</td>
@@ -840,7 +840,20 @@ async function setStatus(s) {
 
 /* event.html [최종 종합]과 동일한 계산 */
 function genderOf(phone) { return String(phone).split('-')[1] === '2000' ? '여' : '남'; }
+/* 이글(-2 이하)은 버디로 세지 않음 — 회원 화면과 동일 기준 */
 function birdies(r) { let b = 0; for (let i = 1; i <= 18; i++) if (Number(r['H' + i]) === -1) b++; return b; }
+/* 동점자 처리 — 회원 화면(event.html)과 동일
+   스트로크: 합계 → 백카운트 / 신페리오: Net → 합산 높은 순 → 백카운트 */
+function backCount(a, b) {
+  for (let i = 18; i >= 10; i--) { const va = Number(a['H'+i]) || 0, vb = Number(b['H'+i]) || 0; if (va !== vb) return va - vb; }
+  return 0;
+}
+function cmpStroke(a, b) { const g = Number(a['합계']) - Number(b['합계']); if (g) return g; return backCount(a, b); }
+function cmpNet(a, b) {
+  const n = Number(a['Net_Score']) - Number(b['Net_Score']); if (n) return n;
+  const g = Number(b['합계']) - Number(a['합계']); if (g) return g;
+  return backCount(a, b);
+}
 
 function buildFinal() {
   const played = RECORDS.filter(r => Number(r['합계']) > 0);
@@ -856,17 +869,18 @@ function buildFinal() {
   const add = (t, item) => { if (teams[t]) teams[t].bonus.push(item); };
   Object.values(teams).sort((a, b) => a.gross - b.gross).forEach((t, i) => t.rankPt = RANK_PTS[i] ?? 0);
 
-  const medal = played.reduce((m, r) => Number(r['합계']) < Number(m['합계']) ? r : m);
+  const medal = [...played].sort(cmpStroke)[0];
   add(medal['소속팀'], { l: '메달리스트 ' + medal['성명'], v: 10, ic: '🏅' });
 
   /* 신페 보너스는 2차 공개(완료) 단계에서만 — 회원 화면과 동일 */
   const npDone = (STATUS === '완료') ? played.filter(r => Number(r['NP_Handicap']) > 0) : [];
   if (npDone.length) {
-    const males = npDone.filter(r => genderOf(r['전화번호']) === '남');
-    const fems  = npDone.filter(r => genderOf(r['전화번호']) === '여');
-    if (males.length) { const w = males.reduce((m, r) => Number(r['Net_Score']) < Number(m['Net_Score']) ? r : m); add(w['소속팀'], { l: '신페 남우승 ' + w['성명'], v: 10, ic: '🏌️' }); }
-    if (fems.length)  { const w = fems.reduce((m, r) => Number(r['Net_Score']) < Number(m['Net_Score']) ? r : m); add(w['소속팀'], { l: '신페 여우승 ' + w['성명'], v: 10, ic: '🏌️‍♀️' }); }
-    const last = npDone.reduce((m, r) => Number(r['Net_Score']) > Number(m['Net_Score']) ? r : m);
+    const males = npDone.filter(r => genderOf(r['전화번호']) === '남').sort(cmpNet);
+    const fems  = npDone.filter(r => genderOf(r['전화번호']) === '여').sort(cmpNet);
+    if (males.length) add(males[0]['소속팀'], { l: '신페 남우승 ' + males[0]['성명'], v: 10, ic: '🏌️' });
+    if (fems.length)  add(fems[0]['소속팀'],  { l: '신페 여우승 ' + fems[0]['성명'],  v: 10, ic: '🏌️‍♀️' });
+    const sorted = [...npDone].sort(cmpNet);
+    const last = sorted[sorted.length - 1];
     add(last['소속팀'], { l: '신페 꼴등 ' + last['성명'], v: -10, ic: '😢' });
   }
 
