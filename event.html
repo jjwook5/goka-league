@@ -58,7 +58,7 @@
 
 <script>
 const SUPABASE_URL = 'https://ogyzzmlxxmplwaawraoc.supabase.co';
-const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9neXp6bWx4eG1wbHdhYXdyYW9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMTM2NTIsImV4cCI6MjA5NDc4OTY1Mn0.ih7nCSWSnSlTmqweo8F_8ZOrRQ6sWYVgQXsK7R6b9V0';
+const KEY = 'sb_publishable_4lEKf_VDXf7udBOGh-Bggw_ee4UApQd';   /* 공개(publishable) 키 — apikey 헤더에만 */
 const MATCH_ID = 20260913;
 const BASE_PAR = 72;
 const RANK_PTS = [100, 90, 80, 70];
@@ -74,7 +74,7 @@ let MEMBERS = {}, RECORDS = [], STATUS = '진행중', NEAREST = [];
 
 function sb(table, params='') {
   return fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*${params}`, {
-    headers: { apikey: KEY, Authorization: 'Bearer ' + KEY }
+    headers: { apikey: KEY }
   }).then(r => r.json());
 }
 function nick(phone) {

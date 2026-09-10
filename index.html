@@ -728,13 +728,13 @@ function initLogo() {
    ★ Supabase 연결 설정
    ═══════════════════════════════════════════════════ */
 const SUPABASE_URL = 'https://ogyzzmlxxmplwaawraoc.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9neXp6bWx4eG1wbHdhYXdyYW9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMTM2NTIsImV4cCI6MjA5NDc4OTY1Mn0.ih7nCSWSnSlTmqweo8F_8ZOrRQ6sWYVgQXsK7R6b9V0';
+/* 공개(publishable) 키 — 웹 공개용. JWT가 아니므로 apikey 헤더에만 보낸다 (Authorization 금지) */
+const SUPABASE_ANON_KEY = 'sb_publishable_4lEKf_VDXf7udBOGh-Bggw_ee4UApQd';
 
 function sbFetch(table, params = '') {
   return fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*${params}`, {
     headers: {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+      'apikey': SUPABASE_ANON_KEY
     }
   }).then(res => res.json());
 }
@@ -805,7 +805,6 @@ function recordVisit() {
       method: 'POST',
       headers: {
         'apikey': SUPABASE_ANON_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
         'Content-Type': 'application/json',
         'Prefer': 'return=minimal'
       },

@@ -15,10 +15,10 @@
 
 | 파일 | 역할 | API 키 |
 |------|------|--------|
-| `index.html` | 회원용 앱 (사용자 화면) | SUPABASE_ANON_KEY |
-| `admin/index.html` | 관리자용 앱 | ANON_KEY + 관리자 로그인 |
-| `admin/event.html` | 정모(팀 대항전) 관리자 | ANON_KEY + 관리자 로그인 |
-| `admin/auth.js` | 관리자 로그인 공용 모듈 (Supabase Auth) | ANON_KEY |
+| `index.html` | 회원용 앱 (사용자 화면) | 공개(publishable) 키 |
+| `admin/index.html` | 관리자용 앱 | 공개 키 + 관리자 로그인 |
+| `admin/event.html` | 정모(팀 대항전) 관리자 | 공개 키 + 관리자 로그인 |
+| `admin/auth.js` | 관리자 로그인 공용 모듈 (Supabase Auth) | 공개 키 |
 | `manifest.json` | 회원용 PWA | - |
 | `manifest-admin.json` | 관리자용 PWA | - |
 | `.claude/launch.json` | 로컬 미리보기 서버 (port 3344) | - |

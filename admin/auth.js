@@ -1,7 +1,8 @@
 /* ════════════════════════════════════════════════════
    고카 관리자 로그인 (Supabase Auth) — admin/index.html · admin/event.html 공용
    ────────────────────────────────────────────────────
-   · 코드에는 공개 키(anon)만 둔다. service_role 키는 절대 넣지 않는다.
+   · 코드에는 공개(publishable) 키만 둔다. secret / service_role 키는 절대 넣지 않는다.
+     공개 키는 apikey 헤더에만, Authorization 에는 로그인 토큰(JWT)만 싣는다.
    · 쓰기 권한은 DB의 RLS 정책이 결정한다: public.is_goka_admin()
        = 로그인 토큰의 app_metadata.role 이 'admin' 인 계정만 쓰기 가능
      (app_metadata 는 대시보드/SQL로만 바뀌고 사용자가 스스로 못 바꾼다)
@@ -9,7 +10,7 @@
    ════════════════════════════════════════════════════ */
 const GokaAuth = (() => {
   const SB   = 'https://ogyzzmlxxmplwaawraoc.supabase.co';
-  const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9neXp6bWx4eG1wbHdhYXdyYW9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMTM2NTIsImV4cCI6MjA5NDc4OTY1Mn0.ih7nCSWSnSlTmqweo8F_8ZOrRQ6sWYVgQXsK7R6b9V0';
+  const ANON = 'sb_publishable_4lEKf_VDXf7udBOGh-Bggw_ee4UApQd';   /* 공개(publishable) 키 */
   const STORE = 'goka_admin_session';
 
   let s = null;              /* { access_token, refresh_token, expires_at, email, role } */
