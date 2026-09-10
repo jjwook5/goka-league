@@ -366,31 +366,30 @@
   </div>
 
 </main>
+<script src="/admin/auth.js"></script>
 <div id="admin-loading"><div class="spinner"></div><p style="color:#e8d5a3;margin-top:10px;font-size:12px;" id="loading-text">처리 중...</p></div>
 
 <script>
 /* ═══════════════════════════════════════════════════
-   ★ Supabase 연결 설정
+   ★ Supabase 연결 설정 — 공개 키 + 관리자 로그인 (admin/auth.js)
    ═══════════════════════════════════════════════════ */
 const SUPABASE_URL = 'https://ogyzzmlxxmplwaawraoc.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9neXp6bWx4eG1wbHdhYXdyYW9jIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTIxMzY1MiwiZXhwIjoyMDk0Nzg5NjUyfQ.rfltEsqCP23jQ21gKF8BIRzGos5-PORKpuMXouClJYs';
 
-const SB_H  = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
-const SB_HW = { ...SB_H, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };
+/* service_role 키는 코드에 두지 않는다. 모든 요청은 로그인 토큰으로 → 쓰기 권한은 DB RLS가 판단 */
 
 function sbGet(table, query = '') {
-  return fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*${query}`, { headers: SB_H }).then(r => r.json());
+  return GokaAuth.authFetch(`${SUPABASE_URL}/rest/v1/${table}?select=*${query}`).then(r => r.json());
 }
 async function sbPost(table, body) {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, { method:'POST', headers: SB_HW, body: JSON.stringify(body) });
+  const r = await GokaAuth.authFetch(`${SUPABASE_URL}/rest/v1/${table}`, { method:'POST', write:true, body: JSON.stringify(body) });
   if (!r.ok) throw new Error(await r.text());
 }
 async function sbPatch(table, filter, body) {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filter}`, { method:'PATCH', headers: SB_HW, body: JSON.stringify(body) });
+  const r = await GokaAuth.authFetch(`${SUPABASE_URL}/rest/v1/${table}?${filter}`, { method:'PATCH', write:true, body: JSON.stringify(body) });
   if (!r.ok) throw new Error(await r.text());
 }
 async function sbDelete(table, filter) {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filter}`, { method:'DELETE', headers: SB_H });
+  const r = await GokaAuth.authFetch(`${SUPABASE_URL}/rest/v1/${table}?${filter}`, { method:'DELETE' });
   if (!r.ok) throw new Error(await r.text());
 }
 
@@ -433,7 +432,7 @@ function switchPhaseTab(tabId) {
   if (tabId === 'phase4') renderPhase4Info();
 }
 
-window.onload = function() { loadAdminInitData(); };
+window.onload = function() { GokaAuth.require().then(loadAdminInitData); };
 
 /* ═══════════════════════════════════════════════════
    초기 데이터 로딩

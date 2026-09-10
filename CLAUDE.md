@@ -16,7 +16,9 @@
 | 파일 | 역할 | API 키 |
 |------|------|--------|
 | `index.html` | 회원용 앱 (사용자 화면) | SUPABASE_ANON_KEY |
-| `admin/index.html` | 관리자용 앱 | SUPABASE_SERVICE_ROLE_KEY |
+| `admin/index.html` | 관리자용 앱 | ANON_KEY + 관리자 로그인 |
+| `admin/event.html` | 정모(팀 대항전) 관리자 | ANON_KEY + 관리자 로그인 |
+| `admin/auth.js` | 관리자 로그인 공용 모듈 (Supabase Auth) | ANON_KEY |
 | `manifest.json` | 회원용 PWA | - |
 | `manifest-admin.json` | 관리자용 PWA | - |
 | `.claude/launch.json` | 로컬 미리보기 서버 (port 3344) | - |
@@ -32,7 +34,7 @@
 ## 배포 방법
 
 ```bash
-git add index.html admin/index.html
+git add index.html admin/index.html admin/event.html admin/auth.js
 git commit -m "설명"
 git push origin main
 ```
@@ -112,7 +114,13 @@ phase4SubTab, phase4TitleSort
 
 ## 주의사항
 
-- `SERVICE_ROLE_KEY`는 admin/index.html에만 사용 — 절대 외부 노출 금지
+- **service_role 키는 코드·HTML에 절대 넣지 않는다.** 정적 파일은 누구나 받아볼 수 있다.
+  (2026-09-11 공개 저장소·관리자 페이지로 유출 → 로그인 방식으로 전환, 키 교체)
+- 관리자 쓰기 권한 = DB RLS 정책 `goka_admin_all` + 함수 `is_goka_admin()`
+  (로그인 토큰의 `app_metadata.role = 'admin'` 인 계정만 쓰기 가능. 이 값은 대시보드/SQL로만 변경 가능)
+- **관리자 추가:** ① 대시보드 Authentication → Users → Add user → Create new user (Auto Confirm User 체크)
+  ② SQL: `update auth.users set raw_app_meta_data = coalesce(raw_app_meta_data,'{}'::jsonb) || '{"role":"admin"}'::jsonb where email = '...';`
+  ②를 빼먹으면 로그인은 되지만 "관리자 권한이 없는 계정"으로 막힌다. 권한 회수 = Users에서 계정 삭제
 - 한국어 필터값은 `encodeURIComponent()` 필수
 - tb_Record.scores 배열: `[H1~H9, H10~H18]` (index 0~8: 전반, 9~17: 후반)
 - 수정 후 반드시 커밋 & 푸시해야 Vercel에 반영됨

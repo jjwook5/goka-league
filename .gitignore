@@ -1,2 +1,4 @@
 .tmp_*
 .vercel/
+_backup/
+.claude/settings.local.json
