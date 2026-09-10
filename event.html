@@ -312,6 +312,7 @@ function nameCell(r) {
   return `${teamBadge(r['소속팀'])} <span style="color:#d4e4da;">${esc(nick(r['전화번호']))}</span>${gb}`;
 }
 let AWARD_SUB = 'np';
+let TITLE_SORT = 'b';   /* 번외타이틀 정렬 열: e(이글)/b(버디)/p(파)/bg(보기)/d(더블+) */
 
 function awardNP(played) {
   const rows = [...played].sort(cmpNet);   /* Net → 합산 높은 순 → 백카운트 */
@@ -342,19 +343,24 @@ function awardStroke(played) {
     <th style="width:24px;">#</th><th style="text-align:left;">선수</th><th>그로스</th></tr></thead><tbody>${body}</tbody></table>`;
 }
 function awardTitle(played) {
-  /* 버디는 -1만 카운트(팀 보너스와 동일 기준). 이글은 나온 경우에만 별도 열로 표시 */
-  const rows=played.map(r=>({r,...countTypes(r)})).sort((a,b)=>b.b-a.b || b.e-a.e);
-  const anyEagle = rows.some(x=>x.e>0);
-  const eagleTh = anyEagle ? `<th>🦅이글</th>` : '';
-  const body=rows.map((x,i)=>`<tr style="font-size:12px;border-top:1px solid #14301e;">
-    <td style="text-align:left;padding:7px 4px;">${i+1}. ${nameCell(x.r)}</td>
-    ${anyEagle ? `<td style="text-align:center;color:#a855f7;font-weight:700;">${x.e||''}</td>` : ''}
-    <td style="text-align:center;color:#3b82f6;font-weight:700;">${x.b}</td>
-    <td style="text-align:center;color:#22c55e;">${x.p}</td>
-    <td style="text-align:center;color:#eab308;">${x.bg}</td>
-    <td style="text-align:center;color:#ef4444;">${x.d}</td></tr>`).join('');
-  return `<table style="width:100%;border-collapse:collapse;"><thead><tr style="color:#8faa97;font-size:10px;">
-    <th style="text-align:left;">선수</th>${eagleTh}<th>🐦버디</th><th>파</th><th>보기</th><th>더블+</th></tr></thead><tbody>${body}</tbody></table>`;
+  /* 버디는 -1만 카운트(팀 보너스와 동일 기준). 이글은 나온 경우에만 별도 열로 표시.
+     열 제목을 누르면 그 개수가 많은 순으로 정렬, 값이 같으면 같은 순위 (회원 앱 번외타이틀과 동일) */
+  const rows = played.map(r => ({ r, ...countTypes(r) }));
+  const anyEagle = rows.some(x => x.e > 0);
+  if (TITLE_SORT === 'e' && !anyEagle) TITLE_SORT = 'b';
+  const k = TITLE_SORT;
+  rows.sort((a, b) => b[k] - a[k] || String(nick(a.r['전화번호'])).localeCompare(String(nick(b.r['전화번호'])), 'ko'));
+  rows.forEach((x, i) => { x.rk = (i > 0 && x[k] === rows[i-1][k]) ? rows[i-1].rk : i + 1; });
+  const COLS = [...(anyEagle ? [['e','🦅이글','#a855f7']] : []),
+                ['b','🐦버디','#3b82f6'], ['p','파','#22c55e'], ['bg','보기','#eab308'], ['d','더블+','#ef4444']];
+  const th = COLS.map(([c, l, col]) =>
+    `<th onclick="TITLE_SORT='${c}';renderAward();" style="cursor:pointer;padding:6px 2px;white-space:nowrap;${k===c ? `color:${col};` : ''}">${l}${k===c ? ' ▼' : ''}</th>`).join('');
+  const body = rows.map(x => `<tr style="font-size:12px;border-top:1px solid #14301e;">
+    <td style="text-align:left;padding:7px 4px;"><span style="color:${rankColor(x.rk)};font-weight:800;">${x.rk}</span>. ${nameCell(x.r)}</td>
+    ${COLS.map(([c, , col]) => `<td style="text-align:center;color:${col};${k===c ? 'font-weight:800;font-size:13px;' : 'opacity:.7;'}">${c==='e' ? (x.e || '') : x[c]}</td>`).join('')}</tr>`).join('');
+  return `<div style="font-size:10px;color:#5a7f6a;text-align:right;padding:2px 2px 6px;">열 제목을 누르면 많은 순으로 정렬</div>
+    <table style="width:100%;border-collapse:collapse;"><thead><tr style="color:#8faa97;font-size:10px;">
+    <th style="text-align:left;">선수</th>${th}</tr></thead><tbody>${body}</tbody></table>`;
 }
 function renderAward() {
   const el = document.getElementById('v-award');
