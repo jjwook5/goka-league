@@ -71,6 +71,15 @@
   #admin-loading { position: fixed; inset: 0; background: rgba(13,31,21,0.8); display: none; align-items: center; justify-content: center; z-index: 999; flex-direction: column; }
   .spinner { width: 40px; height: 40px; border: 3px solid #1e3a2a; border-top-color: #e8d5a3; border-radius: 50%; animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
+  /* 🤖 스코어카드 AI 판독 (3단계) */
+  .btn-primary:disabled { opacity: .45; cursor: not-allowed; }
+  label.btn-primary { cursor: pointer; }
+  .ai-thumbs { display: flex; gap: 6px; overflow-x: auto; margin-top: 8px; }
+  .ai-thumbs img { height: 60px; border-radius: 6px; border: 1px solid #2d5a3d; flex-shrink: 0; }
+  .ai-thumbs span { font-size: 11px; color: #9fc4b0; align-self: center; white-space: nowrap; }
+  details.form-card > summary { cursor: pointer; font-size: 12px; font-weight: 700; color: #8faa97; list-style: none; }
+  details.form-card > summary::-webkit-details-marker { display: none; }
+  details.form-card[open] > summary { margin-bottom: 10px; }
 </style>
 </head>
 <body>
@@ -137,22 +146,35 @@
       <button class="btn-primary" onclick="submitPhase2()">[2단계] 코스 매핑 저장</button>
     </div>
     <div id="tab-phase3" class="hidden">
-      <!-- AI 프롬프트 복사 카드 -->
-      <div style="background:#111f17;border:1px solid #3a6b4a;border-radius:10px;padding:12px;margin-bottom:14px;">
-        <div style="font-size:11px;font-weight:800;color:#e8d5a3;margin-bottom:6px;">📸 STEP 1 — AI로 스코어카드 변환</div>
+      <!-- 🤖 스코어카드 사진 AI 판독 -->
+      <div class="form-card" style="border-color:#b87333;">
+        <div style="font-size:11px;font-weight:800;color:#e8d5a3;margin-bottom:6px;">📷 STEP 1 — 스코어카드 사진 AI 판독</div>
+        <div style="font-size:11px;color:#8faa97;line-height:1.7;margin-bottom:10px;">
+          조별 스코어카드 사진을 <b style="color:#d4e4da;">여러 장 한꺼번에</b> 고르고 [🤖 AI 실행]을 누르세요.<br>
+          결과 JSON이 아래 칸에 채워지고 검증표가 만들어집니다. 틀린 이름·숫자는 JSON에서 고친 뒤 [🔍 검증표] 다시.
+        </div>
+        <label class="btn-primary" style="background:#1e3a2a;margin-top:0;">📷 스코어카드 사진 선택<input type="file" id="aiFiles" accept="image/*" multiple hidden onchange="aiPickFiles()"></label>
+        <div id="aiThumbs" class="ai-thumbs"></div>
+        <button id="aiRunBtn" class="btn-primary" style="background:#b87333;color:#0d1f15;" onclick="aiRunCards()" disabled>🤖 AI 실행</button>
+        <div id="aiMsg"></div>
+      </div>
+      <!-- 비상용: 표준 프롬프트 복사 (AI 실행이 안 될 때) -->
+      <details class="form-card">
+        <summary>🆘 비상용 — 표준 프롬프트 복사 (AI 실행이 안 될 때) ▾</summary>
         <div style="font-size:11px;color:#8faa97;line-height:1.7;margin-bottom:10px;">
           별도 AI 창(Claude·ChatGPT 등)에 스코어카드 <b style="color:#d4e4da;">사진</b>과 함께<br>
-          아래 표준 프롬프트를 붙여넣기 하세요.
+          아래 표준 프롬프트를 붙여넣고, 받은 JSON을 아래 칸에 붙여넣으세요.
         </div>
         <button id="copyPromptBtn" class="btn-primary" style="background:#1a472a;margin-top:0;" onclick="copyPrompt()">
           📋 표준 프롬프트 복사
         </button>
-      </div>
-      <!-- JSON 붙여넣기 -->
-      <div style="font-size:11px;font-weight:800;color:#e8d5a3;margin-bottom:6px;">📋 STEP 2 — JSON 붙여넣기 &amp; 검증</div>
-      <label class="form-label">AI가 출력한 JSON을 아래에 붙여넣기</label>
-      <textarea id="jsonInput" class="textarea-json" placeholder='[&#10;  {"name": "홍길동", "scores": [0,1,-1,1,2,0,1,0,1,0,0,1,1,2,0,1,0,0]},&#10;  ...&#10;]'></textarea>
+      </details>
+      <!-- JSON 확인·수정 -->
+      <div style="font-size:11px;font-weight:800;color:#e8d5a3;margin-bottom:6px;">📋 STEP 2 — JSON 확인·수정 &amp; 검증</div>
+      <label class="form-label">AI 판독 결과 (또는 AI 앱에서 받은 JSON) — 틀린 곳은 여기서 직접 고치세요</label>
+      <textarea id="jsonInput" class="textarea-json" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off" style="height:180px;white-space:pre;overflow-x:auto;" placeholder='[&#10;  {"name": "홍길동", "scores": [0,1,-1,1,2,0,1,0,1,0,0,1,1,2,0,1,0,0]},&#10;  ...&#10;]'></textarea>
       <button class="btn-primary" style="background:#2d5a3d;margin-top:0;margin-bottom:16px;" onclick="previewScores()">🔍 데이터 검증 표 만들기</button>
+      <div id="previewWarn"></div>
       <div class="score-grid-wrapper hidden" id="previewArea">
         <table class="grid-table">
           <thead><tr><th style="width:50px;text-align:left;">선수</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th></tr></thead>
@@ -724,45 +746,271 @@ function copyPrompt() {
   });
 }
 
-function previewScores() {
+/* ════════════════════════════════════════════════════
+   🤖 스코어카드 사진 AI 판독 — 정모 관리자 2와 같은 /api/extract-score 사용
+   사진 → AI → JSON 칸에 채움 → 검증표 → (사람이 확인·JSON 수정) → 💾 임시저장. 자동 저장 없음
+   ════════════════════════════════════════════════════ */
+const AI_API = '/api/extract-score';
+const AI_CONCURRENCY = 3;                                        /* 사진 동시 판독 장수 */
+const AI_CARD_PREP = { maxW: 1080, sliceH: 2400, overlap: 160 };
+let aiFileList = [];
+let aiLast = null;          /* 마지막 AI 판독 [{name, scores, meta}] — 검증표의 카드 인쇄 합계 대조용 */
+
+function p3esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function p3note(kind, html) {
+  const c = { ok: ['#0f2a1c','#2d5a3d','#9fc4b0'], warn: ['#3a2e14','#5a4a20','#f0dca3'], bad: ['#4a1010','#b03a3a','#ffc6c6'], err: ['#3a1414','#5a2020','#f0b0b0'] }[kind];
+  return `<div style="background:${c[0]};border:1px solid ${c[1]};color:${c[2]};border-radius:8px;padding:9px 10px;font-size:11px;line-height:1.6;margin:8px 0;">${html}</div>`;
+}
+const p3sum = a => a.reduce((x, y) => x + y, 0);
+function p3nick(r) { const m = globalData.members.find(x => x['전화번호'] === r['전화번호']); return (m && m['닉네임']) || r['닉네임'] || ''; }
+/* 이름 → 이 대회 기록 (성명 → 공백무시 → 닉네임) */
+function p3Match(name, recs) {
+  const n = String(name || '').trim();
+  if (!n) return null;
+  const flat = s => String(s || '').replace(/\s+/g, '');
+  return recs.find(r => r['성명'] === n) || recs.find(r => flat(r['성명']) === flat(n)) || recs.find(r => p3nick(r) === n) || null;
+}
+function p3Pars(rec) {
+  const f = globalData.courses.find(c => c['구장명'] === rec['구장명'] && c['코스명'] === rec['전반코스']);
+  const b = globalData.courses.find(c => c['구장명'] === rec['구장명'] && c['코스명'] === rec['후반코스']);
+  return (f && b) ? [...f.P, ...b.P].map(Number) : null;
+}
+/* ```json 펜스나 앞뒤 설명이 붙어 와도 배열만 뽑음 */
+function p3ParseJson(raw) {
+  let t = String(raw || '').trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+  if (t[0] !== '[') { const s = t.indexOf('['), e = t.lastIndexOf(']'); if (s >= 0 && e > s) t = t.slice(s, e + 1); }
+  const data = JSON.parse(t);
+  if (!Array.isArray(data)) throw new Error('배열([...]) 형태가 아닙니다.');
+  return data;
+}
+/* 한 줄에 한 선수, 전반 9개와 후반 9개 사이를 띄워서 휴대폰에서도 고치기 쉽게 */
+function p3CardJson(list) {
+  return '[\n' + list.map(p => {
+    const s = Array.isArray(p.scores) ? p.scores : [];
+    return `{"name":${JSON.stringify(p.name)},"scores":[${s.slice(0, 9).join(',')},  ${s.slice(9).join(',')}]}`;
+  }).join(',\n') + '\n]';
+}
+
+function aiPickFiles() {
+  const inp = document.getElementById('aiFiles');
+  aiFileList = [...inp.files];
+  inp.value = '';                                                /* 같은 사진을 다시 골라도 동작하게 */
+  document.getElementById('aiThumbs').innerHTML = aiFileList.length
+    ? `<span>${aiFileList.length}장</span>` + aiFileList.map(f => `<img src="${URL.createObjectURL(f)}" alt="">`).join('')
+    : '';
+  document.getElementById('aiRunBtn').disabled = !aiFileList.length;
+}
+function aiLoadImg(file) {
+  return new Promise((ok, no) => {
+    const url = URL.createObjectURL(file), im = new Image();
+    im.onload  = () => { URL.revokeObjectURL(url); ok(im); };
+    im.onerror = () => { URL.revokeObjectURL(url); no(new Error(`${file.name}: 이미지를 열 수 없습니다.`)); };
+    im.src = url;
+  });
+}
+/* 가로를 maxW 이하로 줄이고, 세로가 길면 겹치게 조각낸다 → JPEG dataURL[] */
+async function aiPrepImage(file, { maxW, sliceH, overlap }) {
+  const im = await aiLoadImg(file);
+  const scale = Math.min(1, maxW / im.naturalWidth);
+  const w = Math.round(im.naturalWidth * scale), h = Math.round(im.naturalHeight * scale);
+  const n = h <= sliceH ? 1 : Math.ceil((h - overlap) / (sliceH - overlap));
+  const ph = n === 1 ? h : Math.ceil((h + (n - 1) * overlap) / n);
+  const out = [];
+  for (let k = 0; k < n; k++) {
+    const y = Math.min(k * (ph - overlap), h - ph);
+    const c = document.createElement('canvas');
+    c.width = w; c.height = ph;
+    const g = c.getContext('2d');
+    g.fillStyle = '#fff'; g.fillRect(0, 0, w, ph);
+    g.drawImage(im, 0, y / scale, im.naturalWidth, ph / scale, 0, 0, w, ph);
+    out.push(c.toDataURL('image/jpeg', 0.85));
+  }
+  return out;
+}
+async function aiCallExtract(body) {
+  let r;
+  try { r = await GokaAuth.authFetch(AI_API, { method: 'POST', write: true, body: JSON.stringify(body) }); }
+  catch (e) { throw new Error('서버에 연결하지 못했습니다. 인터넷 연결을 확인하세요.'); }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    const e = new Error(d.error || (r.status === 413 ? '사진 용량이 너무 큽니다.' : r.status === 504 ? 'AI 응답 시간이 초과되었습니다.' : `서버 오류 (${r.status})`));
+    e.status = r.status;
+    throw e;
+  }
+  return d;
+}
+
+async function aiRunCards() {
+  if (!ensureMatchSelected()) return;
+  if (!aiFileList.length) return alert('스코어카드 사진을 먼저 고르세요.');
+  const msg = document.getElementById('aiMsg');
+  msg.innerHTML = '';
+  const files = aiFileList.slice(), total = files.length, results = new Array(total), t0 = Date.now();
+  let next = 0, done = 0;
+  const label = () => `🤖 스코어카드 ${total}장 읽는 중… (${done}/${total} 완료 · ${Math.round((Date.now() - t0) / 1000)}초)`;
+  showLoading(label());
+  const timer = setInterval(() => showLoading(label()), 1000);
+  let recs;
   try {
-    const data = JSON.parse(document.getElementById('jsonInput').value);
-    const tbody = document.getElementById('previewBody'); tbody.innerHTML = '';
-    data.forEach(p => {
-      let rowHtml = `<tr><td style="text-align:left;color:#e8d5a3">${p.name}</td>`;
-      p.scores.forEach(s => { let cls='score-par',text='0'; if(s<0){cls='score-under';text=s;}else if(s>0){cls='score-over';text='+'+s;} rowHtml+=`<td class="${cls}">${text}</td>`; });
-      rowHtml += `</tr>`; tbody.innerHTML += rowHtml;
-    });
-    document.getElementById('previewArea').classList.remove('hidden');
-    document.getElementById('actionButtons').classList.remove('hidden');
-    document.getElementById('actionButtons').style.display = 'flex';
-  } catch(e) { alert('JSON 형식이 올바르지 않습니다.'); }
+    recs = await sbGet('tb_Record', `&대회번호=eq.${currentMatchId}`);
+    if (!Array.isArray(recs) || !recs.length) throw new Error('이 대회의 참가자 명단이 없습니다. 1단계 명단 확정을 먼저 하세요.');
+  } catch (e) {
+    clearInterval(timer); hideLoading();
+    msg.innerHTML = p3note('err', '❌ ' + p3esc(e.message));
+    return;
+  }
+  const roster = recs.map(r => ({ name: r['성명'], nick: p3nick(r), group: r['조번호'], front: r['전반코스'], back: r['후반코스'] }));
+  const pars = {};
+  recs.forEach(r => [r['전반코스'], r['후반코스']].forEach(cn => {
+    if (!cn || pars[cn]) return;
+    const c = globalData.courses.find(x => x['구장명'] === r['구장명'] && x['코스명'] === cn);
+    if (c) pars[cn] = c.P.map(Number);
+  }));
+  async function worker() {
+    while (next < total) {
+      const i = next++;
+      try { results[i] = await aiCallExtract({ mode: 'scorecard', images: await aiPrepImage(files[i], AI_CARD_PREP), roster, pars }); }
+      catch (e) { results[i] = { error: e.message }; }
+      done++;
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(AI_CONCURRENCY, total) }, worker));
+  clearInterval(timer); hideLoading();
+
+  const all = [];
+  results.forEach((r, i) => {
+    if (r.error) return;
+    r.players.forEach(p => all.push({ name: p.name, scores: p.scores,
+      meta: { photo: i + 1, shown: p.shown_name, front_total: p.front_total, back_total: p.back_total, total: p.total } }));
+  });
+  aiLast = all;
+  document.getElementById('jsonInput').value = p3CardJson(all);
+
+  const lines = results.map((r, i) => {
+    if (r.error) return `<div>❌ 사진 ${i + 1}: ${p3esc(r.error)}</div>`;
+    const got = r.players.map(p => p3Match(p.name, recs)).filter(Boolean);
+    const groups = [...new Set(got.map(x => x['조번호']))];
+    let s = `✅ 사진 ${i + 1}: ${r.players.length}명` + (groups.length ? ` (${p3esc(groups.join(', '))})` : '');
+    if (groups.length === 1) {
+      const miss = recs.filter(x => x['조번호'] === groups[0] && !got.includes(x)).map(x => x['성명']);
+      if (miss.length) s += ` — <b style="color:#f0dca3;">빠진 선수: ${p3esc(miss.join(', '))}</b>`;
+    } else if (groups.length > 1) s += ' — <b style="color:#ffc6c6;">다른 조 선수가 섞여 있음</b>';
+    if (r.unreadable && r.unreadable.length) s += `<br>&nbsp;&nbsp;⚠️ 판독 못 함: ${p3esc(r.unreadable.join(' / '))}`;
+    if (r.warnings && r.warnings.length) s += `<br>&nbsp;&nbsp;⚠️ ${p3esc(r.warnings.join(' / '))}`;
+    return `<div>${s}</div>`;
+  }).join('');
+  const ok = results.filter(r => !r.error);
+  const tin = p3sum(ok.map(d => (d.usage.input_tokens || 0) + (d.usage.cache_creation_input_tokens || 0) + (d.usage.cache_read_input_tokens || 0)));
+  const tout = p3sum(ok.map(d => d.usage.output_tokens || 0));
+  const failed = total - ok.length;
+  msg.innerHTML = p3note(failed ? 'warn' : 'ok', `<b>📷 판독 결과</b>${lines}` +
+      (failed ? '<br>실패한 사진만 다시 골라 실행하거나, 🆘 비상용 프롬프트로 JSON을 받아 붙여넣으세요.' : '')) +
+    (ok.length ? `<div style="font-size:10px;color:#6b8f77;">${p3esc([...new Set(ok.map(d => d.model))].join(', '))} · 토큰 입력 ${tin.toLocaleString()} / 출력 ${tout.toLocaleString()} · 약 $${((tin * 5 + tout * 25) / 1e6).toFixed(3)}` +
+      (ok.some(d => d.fallback) ? ' · ⚠️ 대체 모델이 판독함' : '') + '</div>' : '');
+  if (all.length) await previewScores();
+}
+
+/* 검증표 — 이름 매칭 · 18홀 · 카드 인쇄 합계 · 저장된 값과 차이 */
+async function previewScores() {
+  let data;
+  try { data = p3ParseJson(document.getElementById('jsonInput').value); }
+  catch (e) { return alert('JSON 형식이 올바르지 않습니다. 쉼표·따옴표·괄호를 확인하세요.\n\n' + e.message); }
+  let recs = [];
+  if (currentMatchId) { try { recs = await sbGet('tb_Record', `&대회번호=eq.${currentMatchId}`); } catch (e) { recs = []; } }
+  const byName = {};
+  (aiLast || []).forEach(o => { byName[o.name] = o; });
+  const seen = {};
+  let nSave = 0, nBadSum = 0, nNoName = 0, nNot18 = 0, nOverwrite = 0;
+  document.getElementById('previewBody').innerHTML = data.map((p, i) => {
+    const name = String((p && p.name) || '').trim();
+    const s = p && Array.isArray(p.scores) ? p.scores.map(Number) : [];
+    const valid = s.length === 18 && s.every(v => Number.isInteger(v));
+    const rec = recs.length ? p3Match(name, recs) : null;
+    const o = aiLast && aiLast.length === data.length ? aiLast[i] : byName[name];   /* 줄 수가 같으면 같은 줄의 카드 합계로 검사 */
+    const m = o && o.meta;
+    const bad = [], warn = [], info = [];
+    if (!valid) { bad.push(`18홀이 아닙니다 (${s.length}개) — 저장에서 제외`); nNot18++; }
+    if (recs.length && !rec) { warn.push('명단에서 못 찾은 이름 — JSON에서 명단의 성명으로 고치세요 (저장에서 제외)'); nNoName++; }
+    if (rec) {
+      if (seen[rec['전화번호']]) warn.push('같은 선수가 두 번 있습니다 — 아래 줄이 저장됩니다');
+      seen[rec['전화번호']] = true;
+      if (rec['성명'] !== name) info.push(`→ ${rec['성명']}`);
+      const pars = p3Pars(rec);
+      if (pars && valid) {
+        const f = p3sum(pars.slice(0, 9)) + p3sum(s.slice(0, 9)), b = p3sum(pars.slice(9)) + p3sum(s.slice(9));
+        const checks = m ? [['전반 합계', m.front_total, f], ['후반 합계', m.back_total, b], ['총타수', m.total, f + b]].filter(c => Number.isInteger(c[1])) : [];
+        const miss = checks.filter(([, printed, calc]) => printed !== calc);
+        miss.forEach(([k, printed, calc]) => bad.push(`${k}: 카드 ${printed}타 ≠ 입력 ${calc}타 — 사진과 비교하세요`));
+        if (miss.length) nBadSum++;
+        else if (checks.length) info.push(`카드 합계 일치 ✓ (${checks.map(c => c[1]).join('/')})`);
+        info.push(`${f + b}타`);
+      }
+      if (valid && rec['H1'] !== null && rec['H1'] !== undefined) {
+        const diff = s.filter((v, k) => Number(rec['H' + (k + 1)]) !== v).length;
+        if (diff) { warn.push(`이미 저장된 값과 ${diff}개 홀이 다릅니다 — 저장하면 덮어씁니다`); nOverwrite++; }
+        else info.push('저장된 값과 같음');
+      }
+      if (valid) nSave++;
+    }
+    if (m) info.push(m.shown && rec && m.shown !== rec['성명'] ? `사진 ${m.photo} 표기 "${m.shown}"` : `사진 ${m.photo}`);
+    const cells = s.map(v => { let cls = 'score-par', text = '0'; if (v < 0) { cls = 'score-under'; text = v; } else if (v > 0) { cls = 'score-over'; text = '+' + v; } return `<td class="${cls}">${text}</td>`; }).join('');
+    const nameColor = rec ? '#e8d5a3' : (recs.length ? '#f87171' : '#e8d5a3');
+    const notes = bad.map(t => `<div style="color:#ffc6c6;">⛔ ${p3esc(t)}</div>`).join('') + warn.map(t => `<div style="color:#f0dca3;">⚠️ ${p3esc(t)}</div>`).join('') +
+      (info.length ? `<div style="color:#6b8f77;">${p3esc(info.join(' · '))}</div>` : '');
+    return `<tr><td style="text-align:left;color:${nameColor};white-space:nowrap;">${p3esc(rec ? rec['성명'] : name)}</td>${cells}</tr>` +
+      `<tr><td colspan="19" style="text-align:left;font-size:10px;line-height:1.5;padding:2px 4px 8px;font-weight:600;">${notes}</td></tr>`;
+  }).join('');
+  const problems = nBadSum + nNoName + nNot18;
+  document.getElementById('previewWarn').innerHTML = p3note(nBadSum || nNot18 ? 'bad' : problems ? 'warn' : 'ok',
+    `검증표 ${data.length}줄 · <b>저장 가능 ${nSave}명</b>` +
+    (nBadSum ? ` · ⛔ 카드 합계 불일치 ${nBadSum}명` : '') + (nNot18 ? ` · ⛔ 18홀 아님 ${nNot18}명` : '') +
+    (nNoName ? ` · ⚠️ 이름 못 찾음 ${nNoName}명` : '') + (nOverwrite ? ` · ⚠️ 덮어쓰기 ${nOverwrite}명` : '') +
+    (recs.length ? '' : '<br>⚠️ 대회가 선택되지 않아 이름·합계 검사를 하지 못했습니다.'));
+  document.getElementById('previewArea').classList.remove('hidden');
+  document.getElementById('actionButtons').classList.remove('hidden');
+  document.getElementById('actionButtons').style.display = 'flex';
 }
 
 async function submitPhase3() {
   if (!ensureMatchSelected()) return;
-  if (!confirm('점수를 임시 저장합니다. 계속하시겠습니까?')) return;
-  let jsonScores; try { jsonScores = JSON.parse(document.getElementById('jsonInput').value); } catch(e) { return alert('JSON 형식 오류'); }
+  let jsonScores; try { jsonScores = p3ParseJson(document.getElementById('jsonInput').value); } catch(e) { return alert('JSON 형식 오류: ' + e.message); }
+  showLoading('명단 확인 중...');
+  let matchRecords;
+  try { matchRecords = await sbGet('tb_Record', `&대회번호=eq.${currentMatchId}`); }
+  catch (e) { hideLoading(); return alert('오류: ' + e.message); }
+  hideLoading();
+  /* 이름을 명단과 맞추고(성명→공백무시→닉네임), 못 찾은 선수·18홀 아님은 제외 목록으로 알림. 같은 선수가 두 번이면 아래 줄 */
+  const jobs = {}, skipName = [], skipBad = [];
+  jsonScores.forEach(ps => {
+    const s = ps && Array.isArray(ps.scores) ? ps.scores.map(Number) : [];
+    if (s.length !== 18 || !s.every(v => Number.isInteger(v))) { skipBad.push((ps && ps.name) || '(이름없음)'); return; }
+    const rec = p3Match(ps.name, matchRecords);
+    if (!rec) { skipName.push(ps.name || '(이름없음)'); return; }
+    jobs[rec['전화번호']] = { rec, s };
+  });
+  const list = Object.values(jobs);
+  const skipText = (skipName.length ? `\n⚠️ 명단에서 못 찾아 제외: ${skipName.join(', ')}` : '') + (skipBad.length ? `\n⚠️ 18홀이 아니어서 제외: ${skipBad.join(', ')}` : '');
+  if (!list.length) return alert('저장할 선수가 없습니다.' + skipText);
+  if (!confirm(`${list.length}명의 점수를 임시 저장합니다.${skipText}\n\n계속하시겠습니까?`)) return;
   showLoading('스코어 저장 중...');
   try {
-    const matchRecords = await sbGet('tb_Record', `&대회번호=eq.${currentMatchId}`);
-    await Promise.all(jsonScores.map(ps => {
-      if (!ps.scores || ps.scores.length !== 18) return Promise.resolve();
-      const rec = matchRecords.find(r => r['성명'] === ps.name); if (!rec) return Promise.resolve();
-      const upd = {}; ps.scores.forEach((s, i) => { upd[`H${i+1}`] = s; });
+    await Promise.all(list.map(({ rec, s }) => {
+      const upd = {}; s.forEach((v, i) => { upd[`H${i+1}`] = v; });
       // 임시저장 시 합계(gross)도 함께 계산
       const fc = globalData.courses.find(c => c['구장명'] === rec['구장명'] && c['코스명'] === rec['전반코스']);
       const bc = globalData.courses.find(c => c['구장명'] === rec['구장명'] && c['코스명'] === rec['후반코스']);
       if (fc && bc) {
-        const basePar = [...fc.P, ...bc.P].reduce((a,b)=>a+b,0);
-        upd['합계'] = basePar + ps.scores.reduce((a,b)=>a+b,0);
+        const basePar = [...fc.P, ...bc.P].reduce((a,b)=>a+Number(b),0);
+        upd['합계'] = basePar + s.reduce((a,b)=>a+b,0);
       }
       return sbPatch('tb_Record', `대회번호=eq.${currentMatchId}&전화번호=eq.${encodeURIComponent(rec['전화번호'])}`, upd);
     }));
-    hideLoading(); alert(`${jsonScores.length}명의 스코어가 임시저장되었습니다.`);
+    hideLoading(); alert(`✅ ${list.length}명의 스코어가 임시저장되었습니다.${skipText}`);
     document.getElementById('jsonInput').value = '';
     document.getElementById('previewArea').classList.add('hidden');
     document.getElementById('actionButtons').classList.add('hidden');
+    document.getElementById('previewWarn').innerHTML = '';
+    aiLast = null;
   } catch(err) { hideLoading(); alert('오류: ' + err.message); }
 }
 
