@@ -91,6 +91,7 @@
   details.card[open] > summary { margin-bottom:10px; }
   .note.bad { background:#4a1010; border:1px solid #b03a3a; color:#ffc6c6; font-weight:700; }
   .ai-meta { font-size:10px; color:#6b8f77; margin:4px 0 2px; line-height:1.5; }
+  textarea.aijson { font-family:ui-monospace,Menlo,Consolas,monospace; font-size:11px; min-height:170px; white-space:pre; overflow-x:auto; }
 </style>
 </head>
 <body>
@@ -138,6 +139,11 @@
       <button class="btn" id="run1" style="margin-top:8px;" onclick="runLeader()" disabled>🤖 AI 실행</button>
       <div id="ai1msg" style="margin-top:9px;"></div>
       <div id="msg1"></div>
+      <div id="aiEdit1" class="hidden">
+        <div class="glbl">✏️ 판독 결과 JSON — 이름·숫자가 틀리면 여기서 고친 뒤 [다시 채우기]</div>
+        <textarea id="aiJson1" class="aijson" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+        <button class="btn sec" style="margin-top:7px;" onclick="reapplyLeader()">⬇ 고친 JSON으로 다시 채우기</button>
+      </div>
     </div>
 
     <details class="card">
@@ -174,6 +180,11 @@
       <button class="btn" id="run2" style="margin-top:8px;" onclick="runCards()" disabled>🤖 AI 실행</button>
       <div id="ai2msg" style="margin-top:9px;"></div>
       <div id="msg2"></div>
+      <div id="aiEdit2" class="hidden">
+        <div class="glbl">✏️ 판독 결과 JSON — 이름·숫자가 틀리면 고친 뒤 [다시 채우기]. 빠진 선수는 한 줄을 복사해 이름·숫자를 바꿔 추가</div>
+        <textarea id="aiJson2" class="aijson" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+        <button class="btn sec" style="margin-top:7px;" onclick="reapplyCards()">⬇ 고친 JSON으로 다시 채우기</button>
+      </div>
     </div>
 
     <details class="card">
@@ -1084,7 +1095,14 @@ async function runLeader() {
     return;
   }
   stop();
+  aiLast[1] = res;
+  fillEditBox(1, leaderJson(res.players));
+  showLeaderResult(res);
+}
 
+/* 리더보드 결과 → 입력표 채우기 + 경고 (AI 결과, 또는 사람이 고친 JSON) */
+function showLeaderResult(res) {
+  const box = document.getElementById('ai1msg');
   const prev = loadHoles(), next = { ...prev };
   const seen = {}, drops = [], renamed = [], unmatched = [], dupes = [];
   res.players.forEach(p => {
@@ -1161,6 +1179,8 @@ async function runCards() {
       front_total: p.front_total, back_total: p.back_total, total: p.total } }));
   });
   applyScorecard(all);
+  aiLast[2] = { batch, entries: all };
+  fillEditBox(2, cardJson(all));
 
   const lines = results.map((r, i) => {
     if (r.error) return `<div>❌ 사진 ${i + 1}: ${esc(r.error)}</div>`;
@@ -1179,6 +1199,57 @@ async function runCards() {
   box.innerHTML = note(failed ? 'warn' : 'ok', `<b>📷 판독 결과</b>${lines}` +
       (failed ? '<br>실패한 사진만 다시 골라 실행하거나, 🆘 비상용 JSON 붙여넣기를 쓰세요.' : '')) +
     usageText(results.filter(r => !r.error));
+}
+
+/* ── ✏️ 판독 결과 JSON 편집 → 다시 채우기 (예전 JSON 붙여넣기 방식처럼 사람이 바로 고침) ── */
+const aiLast = { 1: null, 2: null };
+function fillEditBox(n, text) {
+  document.getElementById('aiJson' + n).value = text;
+  document.getElementById('aiEdit' + n).classList.remove('hidden');
+}
+function leaderJson(players) {
+  return '[\n' + players.map(p => JSON.stringify({ name: p.name, over: p.over, holes: p.holes })).join(',\n') + '\n]';
+}
+/* 한 줄에 한 선수, 전반 9개와 후반 9개 사이를 띄워서 휴대폰에서도 고치기 쉽게 */
+function cardJson(list) {
+  return '[\n' + list.map(p => {
+    const s = Array.isArray(p.scores) ? p.scores : [];
+    return `{"name":${JSON.stringify(p.name)},"scores":[${s.slice(0, 9).join(',')},  ${s.slice(9).join(',')}]}`;
+  }).join(',\n') + '\n]';
+}
+function readEditBox(n) {
+  try { return parseJsonArray(document.getElementById('aiJson' + n).value); }
+  catch (e) { alert('JSON 형식이 올바르지 않습니다. 쉼표·따옴표·괄호를 확인하세요.\n\n' + e.message); return null; }
+}
+function reapplyLeader() {
+  const data = readEditBox(1);
+  if (!data) return;
+  const players = [], bad = [];
+  data.forEach(p => {
+    const name = String((p && p.name) || '').trim();
+    const over = toOver(p && (p.over ?? p.score ?? p['오버파']));
+    if (!name || over === null) { bad.push(name || '(이름없음)'); return; }
+    players.push({ name, shown_name: name, over, holes: Number.isInteger(p.holes) ? p.holes : null });
+  });
+  renderTab1();                                   /* 이전 채우기를 되돌린 뒤 고친 내용으로 다시 채움 */
+  showLeaderResult({ players, unreadable: bad.map(n => `${n}: 오버파 숫자를 확인하세요`), warnings: [] });
+}
+function reapplyCards() {
+  const data = readEditBox(2);
+  if (!data) return;
+  const last = aiLast[2], orig = last ? last.entries : [];
+  const byName = {};
+  orig.forEach(o => { byName[o.name] = o; });
+  const all = data.map((p, i) => {
+    const name = String((p && p.name) || '').trim();
+    const o = orig.length === data.length ? orig[i] : byName[name];   /* 줄 수가 같으면 같은 줄의 카드 합계로 검사 */
+    return { name, scores: p && p.scores, meta: o && o.meta ? { ...o.meta } : null };
+  });
+  const batch = last ? last.batch : Date.now();
+  pending = pending.filter(x => !(x.meta && x.meta.batch === batch));   /* 이번 판독분만 교체 */
+  all.forEach(x => { if (x.meta) x.meta.batch = batch; });
+  aiLast[2] = { batch, entries: all };
+  applyScorecard(all);
 }
 
 /* 저장 대기 항목별 검사 — 카드 인쇄 합계 / 같은 사진 다른 조 / 저장된 값과 차이 */
