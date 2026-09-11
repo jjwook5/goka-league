@@ -983,7 +983,8 @@ const AI_CONCURRENCY = 3;                                        /* 스코어카
 const LEADER_PREP = { maxW: 1080, sliceH: 2000, overlap: 160 };  /* 긴 스크롤 캡처 → 세로 조각 */
 const CARD_PREP   = { maxW: 1080, sliceH: 2400, overlap: 160 };
 const AI_MAX_PIECES = 10;
-const HOLES_KEY = 'goka_ev2_holes_' + MATCH_ID;                 /* 진행홀 감소 경고용 (이 기기에만 기억) */
+/* 진행홀 감소 경고용 — 이 기기에, 오늘 날짜로만 기억 (리허설·테스트 값이 대회 당일까지 남지 않게) */
+const HOLES_KEY = 'goka_ev2_holes_' + MATCH_ID + '_' + new Date().toLocaleDateString('sv-SE');
 const aiFiles = { 1: [], 2: [] };
 const aiProg = { label: '' };
 const arrSum = a => a.reduce((x, y) => x + y, 0);
