@@ -1157,7 +1157,7 @@ async function runCards() {
   results.forEach((r, i) => {
     if (r.error) return;
     r.players.forEach(p => all.push({ name: p.name, scores: p.scores, meta: {
-      batch, photo: i + 1, shown: p.shown_name, course_label: p.course_label,
+      batch, photo: i + 1, shown: p.shown_name,
       front_total: p.front_total, back_total: p.back_total, total: p.total } }));
   });
   applyScorecard(all);
@@ -1181,8 +1181,7 @@ async function runCards() {
     usageText(results.filter(r => !r.error));
 }
 
-/* 저장 대기 항목별 검사 — 카드 인쇄 합계 / 코스 순서 / 같은 사진 다른 조 / 저장된 값과 차이 */
-function normCourse(s) { return String(s || '').replace(/코스|course|\s/gi, '').toLowerCase(); }
+/* 저장 대기 항목별 검사 — 카드 인쇄 합계 / 같은 사진 다른 조 / 저장된 값과 차이 */
 function cardChecks(p) {
   const rec = p.phone ? RECORDS.find(r => r['전화번호'] === p.phone) : null;
   if (!rec) return '';
@@ -1198,13 +1197,6 @@ function cardChecks(p) {
         .filter(([, printed]) => Number.isInteger(printed));
       checks.forEach(([k, printed, calc]) => { if (printed !== calc) bad.push(`${k}: 카드 ${printed}타 ≠ 입력 ${calc}타 — 사진과 비교하세요`); });
       if (checks.length && !bad.length) info.push(`카드 합계 일치 ✓ (${checks.map(c => c[1]).join('/')})`);
-    }
-    if (m.course_label) {
-      const parts = String(m.course_label).split(/[-–·/→>~\s]+/).map(normCourse).filter(Boolean);
-      const want = [rec['전반코스'], rec['후반코스']].map(normCourse);
-      const same = (a, b) => a && b && (a.startsWith(b) || b.startsWith(a));
-      if (parts.length >= 2 && !(same(parts[0], want[0]) && same(parts[1], want[1])))
-        warn.push(`카드 코스 "${m.course_label}" ↔ 명단 ${rec['전반코스']}→${rec['후반코스']} — 전반/후반 순서를 확인하세요`);
     }
     const mates = pending.filter(x => x !== p && x.phone && x.meta && x.meta.batch === m.batch && x.meta.photo === m.photo);
     const groups = new Set([rec['조번호'], ...mates.map(x => (RECORDS.find(r => r['전화번호'] === x.phone) || {})['조번호'])]);

@@ -23,7 +23,6 @@ const IMAGE_RE = /^data:(image\/(?:jpeg|png|webp|gif));base64,([A-Za-z0-9+/=]+)$
 
 /* ── 출력 스키마 (구조화 출력) ── */
 const nullableInt = { anyOf: [{ type: 'integer' }, { type: 'null' }] };
-const nullableStr = { anyOf: [{ type: 'string' }, { type: 'null' }] };
 const obj = (properties) => ({ type: 'object', additionalProperties: false, required: Object.keys(properties), properties });
 
 const SCHEMAS = {
@@ -41,7 +40,6 @@ const SCHEMAS = {
         name: { type: 'string' },
         shown_name: { type: 'string' },
         image: { type: 'integer' },
-        course_label: nullableStr,
         scores: { type: 'array', items: { type: 'integer' } },
         front_total: nullableInt,
         back_total: nullableInt,
@@ -74,7 +72,7 @@ const LEADER_RULES = `리더보드 캡처를 보고 선수별 현재 오버파�
 const SCORE_RULES = `조별 스코어카드 캡처를 보고 선수별 18홀 오버파를 뽑아라. 보통 사진 한 장 = 한 조(4명).
 
 [카드 구조]
-- 코스 표기 줄(예 "남-서" = 전반 남, 후반 서), 그 아래 위 표(전반 9홀)와 아래 표(후반 9홀).
+- 위 표 = 전반 9홀, 아래 표 = 후반 9홀. (코스 이름은 읽지 않아도 된다. 선수별 코스는 명단에 있다.)
 - 각 표: HOLE 1~9, PAR 줄, 선수별 줄, 마지막 T 열(그 9홀의 타수 합계).
 - 카드 맨 위에 선수별 총타수 요약이 있을 수 있다(옆으로 밀려 일부만 보일 수 있음).
 
@@ -85,8 +83,7 @@ const SCORE_RULES = `조별 스코어카드 캡처를 보고 선수별 18홀 오
    스스로 검산하라: 오버파 표기라면 T = PAR 합 + 9칸 합. 칸이 실제 타수(3,4,5 …)라면 T = 9칸 합이고, 이때는 각 칸에서 그 홀 PAR 를 빼서 오버파로 바꿔라.
 4. front_total / back_total = 위 표 / 아래 표의 T 열 숫자 그대로(타수). 없으면 null.
 5. total = 카드 맨 위 요약에 보이는 그 선수의 총타수. 안 보이면 null.
-6. course_label = 카드의 코스 표기 그대로(예 "남-서"). 없으면 null.
-7. 한 선수의 18칸 중 한 칸이라도 확신이 없으면 그 선수는 players 에서 빼고 unreadable 에 "이름: 몇 번 홀이 불확실" 처럼 적어라.`;
+6. 한 선수의 18칸 중 한 칸이라도 확신이 없으면 그 선수는 players 에서 빼고 unreadable 에 "이름: 몇 번 홀이 불확실" 처럼 적어라.`;
 
 function rosterText(roster) {
   if (!roster.length) return '[명단]\n(없음)';
