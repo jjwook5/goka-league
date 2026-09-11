@@ -141,7 +141,7 @@ function parseBody(req) {
   if (total > MAX_TOTAL_CHARS) throw new HttpError(413, '사진 용량 합계가 너무 큽니다. 장수를 줄여 주세요.');
 
   const roster = (Array.isArray(body.roster) ? body.roster : []).slice(0, 80).map(r => ({
-    name: cleanStr(r && r.name), nick: cleanStr(r && r.nick), group: cleanStr(r && r.group),
+    name: cleanStr(r && r.name), nick: cleanStr(r && r.nick, 60), group: cleanStr(r && r.group),
     front: cleanStr(r && r.front), back: cleanStr(r && r.back)
   })).filter(r => r.name);
 

@@ -138,6 +138,7 @@
       <div id="th1" class="thumbs"></div>
       <button class="btn" id="run1" style="margin-top:8px;" onclick="runLeader()" disabled>🤖 AI 실행</button>
       <div id="ai1msg" style="margin-top:9px;"></div>
+      <div id="aliasBox"></div>
       <div id="msg1"></div>
       <div id="aiEdit1" class="hidden">
         <div class="glbl">✏️ 판독 결과 JSON — 이름·숫자가 틀리면 여기서 고친 뒤 [다시 채우기]</div>
@@ -342,6 +343,7 @@ async function loadAll() {
     renderStatus();
     renderTab1();
     renderPending();
+    renderAliasBox();
   } catch (e) {
     hide();
     alert('데이터 로딩 실패: ' + e.message);
@@ -413,9 +415,43 @@ function matchRecord(name) {
   if (!n) return null;
   const flat = s => String(s || '').replace(/\s+/g, '');
   return RECORDS.find(r => r['성명'] === n)
+      || aliasRec(n)                                   /* 사람이 한 번 맞춰 준 앱 표시 이름 (이 기기에 기억) */
       || RECORDS.find(r => flat(r['성명']) === flat(n))
       || RECORDS.find(r => nickOf(r['전화번호']) === n)
       || null;
+}
+
+/* ── 🔗 앱 표시 이름 기억 — 스마트스코어 닉네임이 명단과 다를 때 한 번 맞춰 주면 다음부터 자동 매칭 ── */
+const ALIAS_KEY = 'goka_ev2_alias';                   /* { 공백없는 앱 이름: 전화번호 } — 이 기기에만 저장 */
+const flatName = s => String(s || '').replace(/\s+/g, '');
+function loadAlias() { try { return JSON.parse(localStorage.getItem(ALIAS_KEY) || '{}') || {}; } catch (e) { return {}; } }
+function saveAlias(a) { try { localStorage.setItem(ALIAS_KEY, JSON.stringify(a)); } catch (e) {} }
+function aliasRec(shown) {
+  const ph = loadAlias()[flatName(shown)];
+  return ph ? (RECORDS.find(r => r['전화번호'] === ph) || null) : null;
+}
+function rememberAlias(shown, phone) {
+  const k = flatName(shown), rec = RECORDS.find(r => r['전화번호'] === phone);
+  if (!k || !rec || k === flatName(rec['성명'])) return false;
+  const a = loadAlias();
+  a[k] = phone;
+  saveAlias(a);
+  renderAliasBox();
+  return true;
+}
+function removeAlias(k) {
+  const a = loadAlias();
+  delete a[k];
+  saveAlias(a);
+  renderAliasBox();
+}
+function renderAliasBox() {
+  const el = document.getElementById('aliasBox');
+  if (!el) return;
+  const list = Object.entries(loadAlias()).map(([k, ph]) => [k, RECORDS.find(r => r['전화번호'] === ph)]).filter(([, r]) => r);
+  el.innerHTML = list.length ? `<details class="card" style="margin:9px 0 0;padding:9px 11px;"><summary>🔗 기억한 앱 이름 ${list.length}개 (다음 리더보드부터 자동 매칭) ▾</summary>` +
+    list.map(([k, r]) => `<div class="prow"><span class="pn">${esc(k)} <small>→</small> ${esc(r['성명'])}<small>${esc(r['조번호'])}</small></span>
+      <button class="btn sec sm" data-k="${esc(k)}" onclick="removeAlias(this.dataset.k)">✕</button></div>`).join('') + '</details>' : '';
 }
 
 /* ════════════════════════════════════════════════════
@@ -603,7 +639,7 @@ function renderPending() {
     const head = p.scores.map((_, h) => `<th>${h + 1}</th>`).join('');
     return `<div style="border-top:1px solid #1e3a2a;padding:10px 0;">
       <div style="display:flex;gap:7px;align-items:center;margin-bottom:7px;">
-        <select onchange="pending[${i}].phone=this.value;renderPending();" style="flex:1;">${opts(p.phone)}</select>
+        <select onchange="pickPending(${i}, this.value)" style="flex:1;">${opts(p.phone)}</select>
         <span style="font-size:11px;color:#e8d5a3;white-space:nowrap;">${sum >= 0 ? '+' : ''}${sum}</span>
         <button class="btn sec sm" onclick="pending.splice(${i},1);renderPending();">✕</button>
       </div>
@@ -612,6 +648,16 @@ function renderPending() {
       <div class="scroll"><table class="grid"><thead><tr>${head}</tr></thead><tbody><tr>${cells}</tr></tbody></table></div>
     </div>`;
   }).join('');
+}
+
+/* 저장 대기 목록에서 선수를 직접 고르면, 읽어온 이름을 그 선수로 기억 */
+function pickPending(i, phone) {
+  const p = pending[i];
+  if (!p) return;
+  const wasUnmatched = !p.phone;
+  p.phone = phone;
+  if (phone && wasUnmatched) rememberAlias((p.meta && p.meta.shown) || p.name, phone);
+  renderPending();
 }
 
 function editScore(i, h, v) {
@@ -1029,7 +1075,12 @@ async function prepImage(file, { maxW, sliceH, overlap }) {
 }
 
 function aiRoster() {
-  return RECORDS.map(r => ({ name: r['성명'], nick: nickOf(r['전화번호']), group: r['조번호'], front: r['전반코스'], back: r['후반코스'] }));
+  const alias = Object.entries(loadAlias());
+  return RECORDS.map(r => ({
+    name: r['성명'],
+    /* 닉네임 + 기억한 앱 표시 이름을 함께 알려 줘서 AI가 처음부터 맞추게 */
+    nick: [nickOf(r['전화번호']), ...alias.filter(([, ph]) => ph === r['전화번호']).map(([k]) => k)].filter(Boolean).join(', '),
+    group: r['조번호'], front: r['전반코스'], back: r['후반코스'] }));
 }
 function aiPars() {
   const p = {};
@@ -1105,11 +1156,14 @@ async function runLeader() {
 function showLeaderResult(res) {
   const box = document.getElementById('ai1msg');
   const prev = loadHoles(), next = { ...prev };
-  const seen = {}, drops = [], renamed = [], unmatched = [], dupes = [];
+  const seen = {}, drops = [], renamed = [], unmatched = [], dupes = [], viaAlias = [], matched = [];
   res.players.forEach(p => {
-    if (p.shown_name && p.shown_name !== p.name) renamed.push(`${p.shown_name}→${p.name}`);
-    const rec = matchRecord(p.name);
+    const byAlias = aliasRec(p.shown_name);              /* 사람이 맞춰 준 이름이 AI 추측보다 우선 */
+    const rec = byAlias || matchRecord(p.name);
+    if (byAlias) viaAlias.push(`${p.shown_name}→${byAlias['성명']}`);
+    else if (p.shown_name && p.shown_name !== p.name) renamed.push(`${p.shown_name}→${p.name}`);
     if (!rec) { unmatched.push(p); return; }
+    matched.push({ name: rec['성명'], over: p.over });
     const ph = rec['전화번호'];
     if (seen[ph]) dupes.push(rec['성명']);
     seen[ph] = true;
@@ -1119,7 +1173,7 @@ function showLeaderResult(res) {
     }
   });
   saveHoles(next);
-  applyLeaderboard(res.players.filter(p => matchRecord(p.name)).map(p => ({ name: p.name, over: p.over })));
+  applyLeaderboard(matched);
 
   const filled = [...document.querySelectorAll('#grid1 input[data-phone]')].filter(i => i.value.trim() !== '').length;
   const absent = RECORDS.filter(r => !seen[r['전화번호']]).map(r => r['성명']);
@@ -1127,16 +1181,18 @@ function showLeaderResult(res) {
     `<option value="${r['전화번호']}">${esc(r['조번호'])} · ${esc(r['성명'])}</option>`).join('');
   let html = '';
   if (drops.length) html += note('bad', `⚠️ 진행홀이 이전 실행보다 줄었습니다 — 오래된 캡처가 아닌지 확인하세요.<br>${esc(drops.join(', '))}`);
-  if (unmatched.length) html += note('warn', '⚠️ 명단에서 못 찾은 이름 — 누구인지 고르면 입력표에 채워집니다.' +
+  if (unmatched.length) html += note('warn', '⚠️ 명단에서 못 찾은 이름 — 누구인지 고르면 입력표에 채워지고, <b>다음 리더보드부터는 자동으로 맞춰집니다.</b>' +
     unmatched.map(p => `<div class="prow"><span class="pn">${esc(p.shown_name || p.name)}<small>${p.over >= 0 ? '+' : ''}${Number(p.over)}</small></span>
-      <select style="flex:1;" onchange="assignLeader(this, ${Number(p.over)})">${opts}</select></div>`).join(''));
+      <select style="flex:1;" data-shown="${esc(p.shown_name || p.name)}" onchange="assignLeader(this, ${Number(p.over)})">${opts}</select></div>`).join(''));
   if (dupes.length) html += note('warn', `⚠️ 같은 선수가 두 번 읽혔습니다: <b>${esc(dupes.join(', '))}</b> — 입력표 값을 사진과 비교하세요.`);
   if (res.unreadable.length) html += note('warn', `⚠️ 판독 못 한 줄: ${esc(res.unreadable.join(' / '))}`);
   if (res.warnings.length) html += note('warn', '⚠️ ' + esc(res.warnings.join(' / ')));
   html += note(absent.length ? 'warn' : 'ok',
     `📊 입력표 채워진 인원 <b>${filled} / ${RECORDS.length}명</b> (이번 사진에서 ${Object.keys(seen).length}명)` +
     (absent.length ? `<br>이번 사진에 없는 선수: ${esc(absent.join(', '))}` : '') +
+    (viaAlias.length ? `<br>🔗 기억한 이름: ${esc(viaAlias.join(', '))}` : '') +
     (renamed.length ? `<br>이름 맞춤: ${esc(renamed.join(', '))}` : ''));
+  renderAliasBox();
   box.innerHTML = html + usageText([res]);
 }
 function assignLeader(sel, over) {
@@ -1145,6 +1201,8 @@ function assignLeader(sel, over) {
   row.querySelector('input').value = over;
   row.classList.add('dirty');
   sel.disabled = true;
+  if (rememberAlias(sel.dataset.shown, sel.value))
+    sel.insertAdjacentHTML('afterend', '<small style="color:#9fc4b0;white-space:nowrap;margin-left:4px;">🔗 기억함</small>');
 }
 
 /* ── ② 스코어카드: 사진 1장 = 호출 1번, AI_CONCURRENCY 장씩 동시에 ── */
@@ -1232,6 +1290,16 @@ function reapplyLeader() {
     if (!name || over === null) { bad.push(name || '(이름없음)'); return; }
     players.push({ name, shown_name: name, over, holes: Number.isInteger(p.holes) ? p.holes : null });
   });
+  /* JSON에서 못 찾던 이름을 명단 이름으로 고쳤다면 → 원래 앱 표시 이름을 기억 (줄 순서가 같을 때만) */
+  const orig = aiLast[1] && aiLast[1].players;
+  if (orig && orig.length === data.length) {
+    data.forEach((p, i) => {
+      const o = orig[i], shown = o.shown_name || o.name;
+      if (aliasRec(shown) || matchRecord(o.name)) return;          /* 원래도 맞춰졌던 줄 */
+      const rec = matchRecord(String((p && p.name) || '').trim());
+      if (rec) rememberAlias(shown, rec['전화번호']);
+    });
+  }
   renderTab1();                                   /* 이전 채우기를 되돌린 뒤 고친 내용으로 다시 채움 */
   showLeaderResult({ players, unreadable: bad.map(n => `${n}: 오버파 숫자를 확인하세요`), warnings: [] });
 }
