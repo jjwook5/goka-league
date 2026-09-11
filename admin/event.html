@@ -854,9 +854,9 @@ function cmpNet(a, b) {
   const g = Number(b['합계']) - Number(a['합계']); if (g) return g;
   return backCount(a, b);
 }
-/* 팀 동점 처리 — 회원 화면과 동일: 최하위(가장 못 친) 선수끼리 비교 → 8위끼리 → … 낮은 팀이 앞 */
-function cmpTeamWorstFirst(aScores, bScores) {
-  const a = [...aScores].sort((x, y) => y - x), b = [...bScores].sort((x, y) => y - x);
+/* 팀 동점 처리 — 회원 화면과 동일: 1위(가장 잘 친) 선수끼리 비교 → 2위끼리 → … 낮은 팀이 앞 */
+function cmpTeamBestFirst(aScores, bScores) {
+  const a = [...aScores].sort((x, y) => x - y), b = [...bScores].sort((x, y) => x - y);
   for (let i = 0; i < Math.min(a.length, b.length); i++) if (a[i] !== b[i]) return a[i] - b[i];
   return 0;
 }
@@ -874,7 +874,7 @@ function buildFinal() {
     teams[t].birdies += birdies(r);
   });
   const add = (t, item) => { if (teams[t]) teams[t].bonus.push(item); };
-  const byStroke = Object.values(teams).sort((a, b) => a.gross - b.gross || cmpTeamWorstFirst(a.scores, b.scores));
+  const byStroke = Object.values(teams).sort((a, b) => a.gross - b.gross || cmpTeamBestFirst(a.scores, b.scores));
   byStroke.forEach((t, i) => { t.rankPt = RANK_PTS[i] ?? 0; t.tie = byStroke.some(o => o !== t && o.gross === t.gross); });
 
   const medal = [...played].sort(cmpStroke)[0];
@@ -903,7 +903,7 @@ function buildFinal() {
   const list = Object.values(teams).map(t => {
     const bsum = t.bonus.reduce((s, b) => s + b.v, 0);
     return { ...t, bsum, total: t.rankPt + bsum };
-  }).sort((a, b) => b.total - a.total || a.gross - b.gross || cmpTeamWorstFirst(a.scores, b.scores));
+  }).sort((a, b) => b.total - a.total || a.gross - b.gross || cmpTeamBestFirst(a.scores, b.scores));
 
   const warn = npDone.length === 0
     ? note('warn', STATUS === '완료'
@@ -920,7 +920,7 @@ function buildFinal() {
         <div style="width:22px;text-align:center;font-weight:800;">${i < 3 ? ['🏆','🥈','🥉'][i] : (i + 1)}</div>
         <div class="tb" style="width:30px;height:30px;line-height:30px;font-size:13px;background:${bg};color:${tx};">${t.name[0]}</div>
         <div style="flex:1;"><div style="font-weight:700;">${t.name}팀</div>
-          <div style="font-size:10px;color:#5a7f6a;">그로스 ${t.gross}${t.tie ? ' <span style="color:#e8d5a3;">(동점·최하위 비교)</span>' : ''} · 순위 ${t.rankPt} + 보너스 ${t.bsum >= 0 ? '+' : ''}${t.bsum}</div></div>
+          <div style="font-size:10px;color:#5a7f6a;">그로스 ${t.gross}${t.tie ? ' <span style="color:#e8d5a3;">(동점·1위부터 비교)</span>' : ''} · 순위 ${t.rankPt} + 보너스 ${t.bsum >= 0 ? '+' : ''}${t.bsum}</div></div>
         <div style="font-size:20px;font-weight:800;color:${c};">${t.total}</div>
       </div>
       <div style="padding-left:31px;">${chips}</div>

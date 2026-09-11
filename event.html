@@ -140,8 +140,8 @@ function renderFinal() {
   });
   const add = (team, item) => { if (teams[team]) teams[team].awards.push(item); };
 
-  /* ① 팀 대항 스트로크 — 팀 합산 그로스 낮은 순, 동점이면 최하위 선수부터 비교 */
-  const byStroke = Object.values(teams).sort((a,b)=>a.gross-b.gross || cmpTeamWorstFirst(a.scores,b.scores));
+  /* ① 팀 대항 스트로크 — 팀 합산 그로스 낮은 순, 동점이면 각 팀 1위 선수부터 비교 */
+  const byStroke = Object.values(teams).sort((a,b)=>a.gross-b.gross || cmpTeamBestFirst(a.scores,b.scores));
   byStroke.forEach((t,i)=>{ t.rankPt = RANK_PTS[i] ?? 0; t.rank = i+1; t.tie = byStroke.some(o => o!==t && o.gross===t.gross); });
 
   /* ② 수상 — 동점자는 백카운트까지 적용해 선정 */
@@ -166,7 +166,7 @@ function renderFinal() {
     const aw = t.awards.reduce((s,b)=>s+b.v,0);
     const bd = t.birdies * 5;
     return { ...t, aw, bd, total: t.rankPt + aw + bd };
-  }).sort((a,b)=> b.total - a.total || a.gross - b.gross || cmpTeamWorstFirst(a.scores, b.scores));
+  }).sort((a,b)=> b.total - a.total || a.gross - b.gross || cmpTeamBestFirst(a.scores, b.scores));
 
   const banner = FULL
     ? `<div class="hint">팀을 누르면 점수 산출 내역이 펼쳐집니다</div>`
@@ -199,7 +199,7 @@ function renderFinal() {
           <i class="chev" id="chf-${t.name}">▼</i></div>
       </div>
       <div class="roster" id="rsf-${t.name}">
-        <div class="rlbl">① 팀 대항 스트로크 — 합산 ${t.gross}타 · ${t.rank}위${t.tie ? ' <span style="color:#e8d5a3;">(동점 · 최하위부터 비교)</span>' : ''}</div>
+        <div class="rlbl">① 팀 대항 스트로크 — 합산 ${t.gross}타 · ${t.rank}위${t.tie ? ' <span style="color:#e8d5a3;">(동점 · 1위부터 비교)</span>' : ''}</div>
         ${line(`팀 순위 <b style="color:#d4e4da;">${t.rank}위</b> 배점`, t.rankPt)}
         <div class="rlbl">② 수상</div>
         ${awardRows}
@@ -236,9 +236,9 @@ function renderLive() {
     teams[t].players.push({ phone:r['전화번호'], over:ov });
     teams[t].over += ov;
   });
-  /* 합산 오버파 낮은 순, 동점이면 최하위 선수부터 비교 */
+  /* 합산 오버파 낮은 순, 동점이면 각 팀 1위 선수부터 비교 */
   const list = Object.values(teams).sort((a,b) => a.over - b.over
-    || cmpTeamWorstFirst(a.players.map(p=>p.over), b.players.map(p=>p.over)));
+    || cmpTeamBestFirst(a.players.map(p=>p.over), b.players.map(p=>p.over)));
   list.forEach((t,i) => { t.rankPt = RANK_PTS[i] ?? 0; t.tie = list.some(o => o!==t && o.over===t.over); });
 
   el.innerHTML = `<div class="hint">팀 합산 오버파 · 팀을 누르면 선수별 기록</div>` + list.map((t,i) => {
@@ -252,7 +252,7 @@ function renderLive() {
         <div class="rankico">${medal}</div>
         <div class="tbadge" style="background:${bg};color:${tx};">${t.name[0]}</div>
         <div style="flex:1;"><div class="tname">${t.name}팀</div>
-          <div class="tsub">합산 ${t.over>=0?'+':''}${t.over} · 순위점수 ${t.rankPt}점 · ${t.players.length}명${t.tie ? ' · <span style="color:#e8d5a3;">동점→최하위 비교</span>' : ''}</div></div>
+          <div class="tsub">합산 ${t.over>=0?'+':''}${t.over} · 순위점수 ${t.rankPt}점 · ${t.players.length}명${t.tie ? ' · <span style="color:#e8d5a3;">동점→1위부터 비교</span>' : ''}</div></div>
         <div style="text-align:right;display:flex;align-items:center;">
           <div class="tover" style="color:${c};">${t.over>=0?'+':''}${t.over}</div>
           <i class="chev" id="ch-${t.name}">▼</i></div>
@@ -292,10 +292,10 @@ function cmpNet(a, b) {
   const g = Number(b['합계']) - Number(a['합계']); if (g) return g;
   return compareBackAward(a, b);
 }
-/* 팀 동점 처리 — 합산이 같으면 각 팀의 최하위(가장 못 친) 선수끼리 비교, 낮은 팀이 앞.
-   그래도 같으면 8위끼리 → 7위끼리 … 순으로 올라가며 비교 */
-function cmpTeamWorstFirst(aScores, bScores) {
-  const a = [...aScores].sort((x,y)=>y-x), b = [...bScores].sort((x,y)=>y-x);
+/* 팀 동점 처리 — 합산이 같으면 각 팀의 1위(가장 잘 친) 선수끼리 비교, 낮은 팀이 앞.
+   그래도 같으면 2위끼리 → 3위끼리 … 순으로 내려가며 비교 */
+function cmpTeamBestFirst(aScores, bScores) {
+  const a = [...aScores].sort((x,y)=>x-y), b = [...bScores].sort((x,y)=>x-y);
   for (let i = 0; i < Math.min(a.length, b.length); i++) if (a[i] !== b[i]) return a[i] - b[i];
   return 0;
 }
