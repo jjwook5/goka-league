@@ -2,3 +2,6 @@
 .vercel/
 _backup/
 .claude/settings.local.json
+node_modules/
+test_image/
+_testphotos/

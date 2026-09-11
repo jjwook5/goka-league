@@ -1,0 +1,9 @@
+{
+  "name": "goka-league",
+  "private": true,
+  "type": "module",
+  "description": "고카리그 — 정적 HTML + Vercel 함수(api/extract-score.js: 정모 AI 스코어 판독)",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.125.0"
+  }
+}
