@@ -594,7 +594,11 @@ function renderProfile() {
   }
   
   const m = DATA.members.find(x => String(x['전화번호']) === currentPlayer);
-  const recs = DATA.records.filter(r => String(r['전화번호']) === currentPlayer && r['합계'] > 0);
+  /* 대회번호(날짜) 오름차순 정렬 — "최근 N개"·"최근 스코어"가 적재 순서(순번)가 아닌
+     실제 대회 날짜를 따르도록 보장 */
+  const recs = DATA.records
+    .filter(r => String(r['전화번호']) === currentPlayer && r['합계'] > 0)
+    .sort((a, b) => Number(a['대회번호']) - Number(b['대회번호']));
   
   if(!m) return;
   const nickDisplay = m['닉네임'] ? esc(m['닉네임']) + ' ' : '';
@@ -675,13 +679,19 @@ function renderProfile() {
 /* ═══════════════════════════════════════════════════
    ★ [개선6] SVG 꺾은선 그래프 렌더러
    ═══════════════════════════════════════════════════ */
-function renderTrendChart(recs) {
-  if(recs.length < 2) return '';
-  
+const TREND_MAX = 20;   /* 그로스 추이 그래프에 표시할 최근 대회 수 */
+
+function renderTrendChart(allRecs) {
+  if(allRecs.length < 2) return '';
+
+  /* 최근 TREND_MAX개만 사용 (recs는 대회번호 오름차순) */
+  const recs = allRecs.slice(-TREND_MAX);
+  const clipped = allRecs.length > recs.length;
+
   const W = 340, H = 140, padL = 35, padR = 10, padT = 20, padB = 30;
   const chartW = W - padL - padR;
   const chartH = H - padT - padB;
-  
+
   const scores = recs.map(r => r['합계']);
   const minS = Math.min(...scores) - 2;
   const maxS = Math.max(...scores) + 2;
@@ -715,13 +725,22 @@ function renderTrendChart(recs) {
     xLabels += `<text x="${points[i].x}" y="${H-4}" fill="#5a7f6a" font-size="9" text-anchor="middle">${label}</text>`;
   }
   
-  let dots = points.map(p => 
-    `<circle cx="${p.x}" cy="${p.y}" r="4" fill="#e8d5a3" stroke="#0d1f15" stroke-width="2"/>
-     <text x="${p.x}" y="${p.y - 8}" fill="#e8d5a3" font-size="9" font-weight="700" text-anchor="middle">${p.s}</text>`
-  ).join('');
-  
+  /* 점이 많으면 숫자 라벨이 겹치므로 위/아래 번갈아 배치하고 점을 줄인다 */
+  const dense = points.length > 12;
+  const dotR  = dense ? 3 : 4;
+
+  let dots = points.map((p, i) => {
+    const labelY = (dense && i % 2 === 1) ? p.y + 15 : p.y - 8;
+    return `<circle cx="${p.x}" cy="${p.y}" r="${dotR}" fill="#e8d5a3" stroke="#0d1f15" stroke-width="2"/>
+     <text x="${p.x}" y="${labelY}" fill="#e8d5a3" font-size="9" font-weight="700" text-anchor="middle">${p.s}</text>`;
+  }).join('');
+
+  const title = clipped
+    ? `📈 그로스 추이 · 최근 ${recs.length}경기 (평균 ${avg})`
+    : `📈 그로스 추이 (평균 ${avg})`;
+
   return `<div class="trend-chart">
-    <h4>📈 그로스 추이 (평균 ${avg})</h4>
+    <h4>${title}</h4>
     <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;">
       ${gridLines}
       <line x1="${padL}" y1="${avgY}" x2="${W-padR}" y2="${avgY}" stroke="#e8d5a3" stroke-width="1" stroke-dasharray="4,3" opacity="0.4"/>
