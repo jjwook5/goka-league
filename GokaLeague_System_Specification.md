@@ -1,6 +1,6 @@
 # ⛳ 고카리그 (GOKA LEAGUE) 시스템 개발 명세서 Ver 1.4
 
-본 문서는 **고카리그(GOKA LEAGUE) Ver 1.3** 의 아키텍처, 데이터베이스 설계, 비즈니스 로직 및 UI/UX 구조를 기록한 공식 명세서입니다.  
+본 문서는 **고카리그(GOKA LEAGUE) Ver 1.4** 의 아키텍처, 데이터베이스 설계, 비즈니스 로직 및 UI/UX 구조를 기록한 공식 명세서입니다.  
 향후 기능 고도화 및 유지보수 시 본 문서를 기준으로 처리합니다.
 
 ---
@@ -9,7 +9,7 @@
 
 | 항목 | 내용 |
 |------|------|
-| **시스템명** | 고카리그 (GOKA LEAGUE) Ver 1.3 |
+| **시스템명** | 고카리그 (GOKA LEAGUE) Ver 1.4 |
 | **대상** | 반기별 승강제 골프 동호회 운영 관리자 및 회원 |
 | **배포 환경** | GitHub + Vercel (정적 호스팅, 자동 배포) |
 | **데이터베이스** | Supabase (PostgreSQL) |
@@ -33,28 +33,33 @@
 ### 2.1. 현재 아키텍처 구조도
 
 ```
-[사용자 스마트폰]                        [관리자 스마트폰]
-       │                                        │
-       ▼                                        ▼
-golfriend.vercel.app              golfriend.vercel.app/admin/
-  (index.html)                       (admin/index.html)
-       │   SUPABASE_ANON_KEY              │   SUPABASE_SERVICE_ROLE_KEY
-       │                                  │
-       └──────────────┬───────────────────┘
-                      ▼
-          Supabase REST API
-          https://ogyzzmlxxmplwaawraoc.supabase.co
-                      │
-                      ▼
-          PostgreSQL Database (Supabase)
-          ┌──────────────────────────┐
-          │  tb_member               │
-          │  tb_Course               │
-          │  tb_Match_Episodes       │
-          │  tb_Record               │
-          │  tb_Season               │
-          └──────────────────────────┘
+[회원 스마트폰]                          [관리자 스마트폰 · PWA]
+       │                                          │
+       ▼                                          ▼
+golfriend.vercel.app                golfriend.vercel.app/admin/
+  index.html  (리그·대회결과)          admin/index.html   (일반대회 4단계)
+  event.html  (정모)                   admin/event2.html  (정모 · AI) ─┐
+       │                                     admin/event.html (정모 · 수동)
+       │  publishable 키                          │  publishable 키               │
+       │  (읽기 전용, RLS)                        │  + 로그인 토큰(JWT, auth.js)  │ 📷 사진
+       └──────────────────┬───────────────────────┘                               │
+                          ▼                                                       ▼
+              Supabase REST API                                   /api/extract-score
+              https://ogyzzmlxxmplwaawraoc.supabase.co            (Vercel 서버리스 함수)
+                          │                                                       │
+                          │  RLS: is_goka_admin()                                 │ ① 관리자 토큰 검증
+                          ▼    = app_metadata.role='admin'                        ▼ ② Claude 호출
+              PostgreSQL Database (Supabase)                        Anthropic Claude API
+              ┌──────────────────────────┐                          (claude-opus-5)
+              │  tb_member               │                          키: Vercel 환경변수
+              │  tb_Course               │                              ANTHROPIC_API_KEY
+              │  tb_Match_Episodes       │                                          │
+              │  tb_Record               │◀── 사람이 확인 후 저장 ───── 판독 JSON ──┘
+              │  tb_Season / visits      │
+              └──────────────────────────┘
 ```
+
+> 판독 결과는 **자동 저장되지 않는다.** 화면 입력표·검증표에 채워지고, 사람이 확인한 뒤 기존 저장 함수로만 DB에 기록된다.
 
 ### 2.2. 구성 요소 역할
 
