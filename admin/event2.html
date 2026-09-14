@@ -974,8 +974,10 @@ function buildFinal() {
   /* 신페 보너스는 2차 공개(완료) 단계에서만 — 회원 화면과 동일 */
   const npDone = (STATUS === '완료') ? played.filter(r => Number(r['NP_Handicap']) > 0) : [];
   if (npDone.length) {
-    const males = npDone.filter(r => genderOf(r['전화번호']) === '남').sort(cmpNet);
-    const fems  = npDone.filter(r => genderOf(r['전화번호']) === '여').sort(cmpNet);
+    /* 스트로크 우승자(메달리스트)는 신페 우승에서 제외 — 회원 화면(event.html)과 동일 규칙 */
+    const notMedal = r => !medal || r['전화번호'] !== medal['전화번호'];
+    const males = npDone.filter(r => genderOf(r['전화번호']) === '남').sort(cmpNet).filter(notMedal);
+    const fems  = npDone.filter(r => genderOf(r['전화번호']) === '여').sort(cmpNet).filter(notMedal);
     if (males.length) add(males[0]['소속팀'], { l: '신페 남우승 ' + males[0]['성명'], v: 10, ic: '🏌️' });
     if (fems.length)  add(fems[0]['소속팀'],  { l: '신페 여우승 ' + fems[0]['성명'],  v: 10, ic: '🏌️‍♀️' });
     const sorted = [...npDone].sort(cmpNet);

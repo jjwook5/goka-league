@@ -380,6 +380,21 @@ function renderResults() {
   /* 선택된 대회 공개 여부 (스트로크 외 탭 잠금 기준) */
   const curEp = DATA.matches.find(m => m['대회번호'] === currentMatchId);
   const isPublished = curEp && curEp['완료구분'] === '완료';
+
+  /* ★ 신페리오 제외홀 — 전체 공개(완료)된 대회만, 코스별로 홀 번호와 파를 함께 표시 */
+  const exRows = DATA.matches.filter(m => m['대회번호'] === currentMatchId && String(m['제외홀'] || '').trim() !== '');
+  if (isPublished && exRows.length) {
+    const exHtml = exRows.map(m => {
+      const c = DATA.courses.find(x => x['구장명'] === m['구장명'] && x['코스명'] === m['코스']);
+      const holes = String(m['제외홀']).split(',').map(h => h.trim()).filter(Boolean).map(h => {
+        const p = c ? c['P' + h] : null;
+        return `<b style="color:#e8d5a3;">${esc(h)}번</b>${p ? `<span style="color:#6b8f77;">(파${p})</span>` : ''}`;
+      }).join(' · ');
+      return `<span style="white-space:nowrap;"><span style="color:#8faa97;">${esc(m['코스'])}</span> ${holes}</span>`;
+    }).join('<span style="color:#2d5a3d;"> &nbsp;|&nbsp; </span>');
+    html += `<div style="background:#111f17;border:1px solid #2d5a3d;border-radius:10px;padding:9px 12px;margin-bottom:12px;font-size:11px;line-height:1.8;">
+      <span style="color:#6b8f77;">🎯 신페리오 제외홀</span> &nbsp;${exHtml}</div>`;
+  }
   const lockHtml = `<div style="text-align:center;padding:32px 16px;">
     <div style="font-size:32px;margin-bottom:12px;">🔒</div>
     <div style="font-size:14px;font-weight:800;color:#e8d5a3;margin-bottom:8px;">집계 중</div>
