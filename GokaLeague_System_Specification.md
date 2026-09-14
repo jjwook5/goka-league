@@ -604,13 +604,23 @@ goka-league/                         ← GitHub 저장소 루트
 ├── package.json                     ← @anthropic-ai/sdk 의존성 (함수 빌드용)
 ├── manifest.json                    ← 회원용 PWA 설정
 ├── manifest-admin.json              ← 관리자용 PWA 설정
-├── .claude/
+├── .gitignore                       ← git 제외 목록
+├── .vercelignore                    ← 배포 제외 목록 (_archive/ 등)
+├── _archive/                        ← 폐기 코드 보관 (배포 제외)
+│   └── Code.gs.js                   ← 구 GAS 백엔드 (폐기·미사용, 참조용)
+├── .claude/                         ← 로컬 전용, git 미추적
 │   ├── settings.json                ← Claude Code 프로젝트 설정
 │   └── launch.json                  ← 로컬 미리보기 서버 설정 (npx serve, port 3344)
-├── Code.js                          ← 구 GAS 코드 참조용 보관 (미사용)
+├── README.md                        ← 저장소 소개 · 문서 목록
 ├── CLAUDE.md                        ← 개발 브리핑
-└── GokaLeague_System_Specification.md  ← 본 문서
+├── GokaLeague_System_Specification.md  ← 본 문서
+├── 정모_관리자2_AI자동입력_설계서.md      ← 사진 AI 판독 설계서 (구현 완료)
+├── 정모_관리자페이지_전달문서.md          ← 정모 관리자 화면 전달 문서
+└── 운영가이드_골프장스코어_복원절차.md    ← 골프장 제공 스코어로 정산 복원 절차
 ```
+
+> `_archive/`, `_backup/`, `test_image/`, `.claude/`는 `.vercelignore`로 배포에서 제외한다.
+> 정적 루트의 파일은 기본적으로 URL로 그대로 열람되므로, 서빙할 이유가 없는 파일은 명시적으로 뺀다.
 
 ### 7.1. 핵심 파일별 역할 요약
 

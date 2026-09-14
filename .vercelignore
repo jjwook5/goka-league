@@ -1,0 +1,8 @@
+# Vercel 배포에서 제외 — 사이트에서 서빙될 이유가 없는 파일
+# (정적 루트의 파일은 기본적으로 그대로 URL로 열람 가능하므로 명시적으로 뺀다)
+
+_archive/
+_backup/
+test_image/
+_testphotos/
+.claude/

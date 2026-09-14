@@ -160,6 +160,8 @@ pending, curTab, aiFiles, aiLast   /* aiLast[1]=리더보드, aiLast[2]=스코�
 ## 주의사항
 
 - **service_role 키는 코드·HTML에 절대 넣지 않는다.** 정적 파일은 누구나 받아볼 수 있다.
+  저장소 루트의 파일은 배포되면 `golfriend.vercel.app/<파일명>`으로 그대로 열린다.
+  서빙할 이유가 없는 파일(`_archive/` 등)은 `.vercelignore`에 넣는다.
   (2026-09-11 공개 저장소·관리자 페이지로 유출 → 로그인 방식으로 전환, 키 교체)
 - **`ANTHROPIC_API_KEY`는 Vercel 환경변수(Production+Preview)에만** 둔다. 코드·커밋·채팅 금지. 등록 후 재배포해야 적용된다.
 - 관리자 쓰기 권한 = DB RLS 정책 `goka_admin_all` + 함수 `is_goka_admin()`
