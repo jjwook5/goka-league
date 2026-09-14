@@ -624,11 +624,16 @@ async function submitPhase1() {
   const allPlayers = Object.values(assignedGroups).flat();
   if (allPlayers.length === 0) return alert('조 편성을 진행해 주세요.');
   /* ★ 가드: 이미 스코어가 입력된 대회를 수정모드로 재확정하면 전체 삭제됨 → 경고 */
+  const courseByGroup = {};        /* 조편성만 바꿔도 2단계 코스 매핑이 날아가지 않게 물려받을 값 */
   if (isEditMode) {
     const existing = await sbGet('tb_Record', `&대회번호=eq.${currentMatchId}`);
-    const hasScores = existing.some(r => Number(r['합계']) > 0);
+    existing.forEach(r => {
+      if (r['조번호'] && r['전반코스'] && r['후반코스'] && !courseByGroup[r['조번호']])
+        courseByGroup[r['조번호']] = { front: r['전반코스'], back: r['후반코스'] };
+    });
+    const hasScores = existing.some(r => Number(r['합계']) > 0 || (r['H1'] !== null && r['H1'] !== undefined));
     if (hasScores) {
-      if (!confirm('⚠️ 이미 스코어가 입력된 대회입니다.\n\n명단을 다시 확정하면 모든 홀 스코어와\n신페리오 정산 결과(합계·NP·Net·Luck)가\n전부 삭제됩니다.\n\n정말 진행하시겠습니까?')) return;
+      if (!confirm('⚠️ 이미 스코어가 입력된 대회입니다.\n\n명단을 다시 확정하면 모든 홀 스코어와\n신페리오 정산 결과(합계·NP·Net·Luck)가\n전부 삭제됩니다.\n(2단계 코스 매핑은 조별로 그대로 유지됩니다)\n\n정말 진행하시겠습니까?')) return;
     }
   }
   showLoading(isEditMode ? '조편성 수정사항 덮어쓰는 중...' : '새 대회 정보 등록 중...');
@@ -642,7 +647,8 @@ async function submitPhase1() {
     const maxRes = await sbGet('tb_Record', '&select=순번&order=순번.desc&limit=1');
     const lastSeq = maxRes.length > 0 ? (maxRes[0]['순번'] || 0) : 0;
     const recordRows = allPlayers.map((p, idx) => ({
-      순번: lastSeq + idx + 1, 대회번호: currentMatchId, 구장명: currentVenue, 전반코스: '', 후반코스: '',
+      순번: lastSeq + idx + 1, 대회번호: currentMatchId, 구장명: currentVenue,
+      전반코스: (courseByGroup[p.group] || {}).front || '', 후반코스: (courseByGroup[p.group] || {}).back || '',
       전화번호: p.phone, 성명: p.name, 닉네임: p.nickname || '', 조번호: p.group, 소속팀: p.team, 소속리그: p.league,
       H1:null,H2:null,H3:null,H4:null,H5:null,H6:null,H7:null,H8:null,H9:null,
       H10:null,H11:null,H12:null,H13:null,H14:null,H15:null,H16:null,H17:null,H18:null,
@@ -662,42 +668,66 @@ async function submitPhase1() {
   } catch(err) { hideLoading(); alert('오류: ' + err.message); }
 }
 
-function renderMappingUI() {
+async function renderMappingUI() {
   document.getElementById('selectedVenueText').value = currentVenue || '연결된 대회 없음';
   const venueCourses = globalData.courses.filter(c => c['구장명'] === currentVenue && c['사용여부'] === 'Y').map(c => c['코스명']);
+  /* 저장된 코스는 항상 DB에서 새로 읽는다 (다른 기기에서 저장했거나 방금 저장한 값이 화면에 반영되도록) */
+  let recs = [];
+  if (currentMatchId) {
+    try { recs = await sbGet('tb_Record', `&대회번호=eq.${currentMatchId}`); }
+    catch (e) { recs = globalData.records.filter(r => String(r['대회번호']) === String(currentMatchId)); }
+    if (recs.length) globalData.records = globalData.records
+      .filter(r => String(r['대회번호']) !== String(currentMatchId)).concat(recs);
+  }
+  const groups = Object.keys(assignedGroups);
+  const opts = sel => `<option value=""${sel ? '' : ' selected'}>— 선택 —</option>` +
+    venueCourses.map(c => `<option value="${c}"${c === sel ? ' selected' : ''}>${c}</option>`).join('');
   let html = '';
-  Object.keys(assignedGroups).forEach(g => {
+  groups.forEach(g => {
     /* 기저장된 코스 복원: 해당 대회·조번호의 첫 번째 레코드에서 읽기 */
-    const existingRec = globalData.records.find(r =>
-      String(r['대회번호']) === String(currentMatchId) && r['조번호'] === g);
+    const existingRec = recs.find(r => r['조번호'] === g);
     const savedFront = existingRec ? (existingRec['전반코스'] || '') : '';
     const savedBack  = existingRec ? (existingRec['후반코스'] || '') : '';
-    const frontOpts = venueCourses.map(c =>
-      `<option value="${c}"${c === savedFront ? ' selected' : ''}>${c}</option>`).join('');
-    const backOpts  = venueCourses.map(c =>
-      `<option value="${c}"${c === savedBack  ? ' selected' : ''}>${c}</option>`).join('');
     html += `<div class="group-box" style="display:flex;justify-content:space-between;align-items:center;">
                <span style="color:#e8d5a3;font-weight:700;">${g}</span>
-               <select id="front_${g}" class="form-select" style="width:110px;padding:6px;">${frontOpts}</select> ➔
-               <select id="back_${g}" class="form-select" style="width:110px;padding:6px;">${backOpts}</select></div>`;
+               <select id="front_${g}" class="form-select" style="width:110px;padding:6px;">${opts(savedFront)}</select> ➔
+               <select id="back_${g}" class="form-select" style="width:110px;padding:6px;">${opts(savedBack)}</select></div>`;
   });
-  document.getElementById('mappingContainer').innerHTML = html;
+  const saved = groups.filter(g => recs.some(r => r['조번호'] === g && r['전반코스'] && r['후반코스'])).length;
+  const head = `<div style="font-size:11px;font-weight:700;margin-bottom:8px;color:${saved === groups.length && groups.length ? '#86efac' : '#fcd34d'};">
+      ${saved === groups.length && groups.length ? '✅' : '⚠️'} DB에 저장된 코스: ${saved} / ${groups.length}조
+      ${saved === groups.length && groups.length ? '' : ' — 저장되지 않은 조는 [— 선택 —]으로 표시됩니다'}</div>`;
+  document.getElementById('mappingContainer').innerHTML = head + html;
 }
 
 async function submitPhase2() {
   if (!ensureMatchSelected()) return;
+  /* 모든 조가 전반·후반 코스를 골랐는지 먼저 확인 (빈 채로 저장하면 임시저장에서 합계가 계산되지 않음) */
+  const picks = Object.keys(assignedGroups).map(g => ({
+    g,
+    front: (document.getElementById('front_' + g) || {}).value || '',
+    back:  (document.getElementById('back_'  + g) || {}).value || ''
+  }));
+  const notPicked = picks.filter(p => !p.front || !p.back).map(p => p.g);
+  if (notPicked.length) return alert(`전반/후반 코스를 고르지 않은 조가 있습니다.\n\n${notPicked.join(', ')}\n\n모든 조의 코스를 고른 뒤 저장하세요.`);
   /* ★ 가드: 스코어 입력된 대회의 코스를 바꾸면 신페리오 제외홀 매핑이 어긋남 → 경고 */
   const existing = await sbGet('tb_Record', `&대회번호=eq.${currentMatchId}`);
-  const hasScores = existing.some(r => Number(r['합계']) > 0);
+  const hasScores = existing.some(r => Number(r['합계']) > 0 || (r['H1'] !== null && r['H1'] !== undefined));
   if (hasScores) {
     if (!confirm('⚠️ 이미 스코어가 입력된 대회입니다.\n\n전반/후반 코스를 변경하면 신페리오 제외홀\n매핑이 달라져 재정산이 필요합니다.\n(홀 스코어 자체는 유지됩니다)\n\n계속하시겠습니까?')) return;
   }
   showLoading('코스 매핑 저장 중...');
   try {
-    await Promise.all(Object.keys(assignedGroups).map(g =>
-      sbPatch('tb_Record', `대회번호=eq.${currentMatchId}&조번호=eq.${encodeURIComponent(g)}`,
-        { 전반코스: document.getElementById('front_'+g).value, 후반코스: document.getElementById('back_'+g).value })
+    await Promise.all(picks.map(p =>
+      sbPatch('tb_Record', `대회번호=eq.${currentMatchId}&조번호=eq.${encodeURIComponent(p.g)}`,
+        { 전반코스: p.front, 후반코스: p.back })
     ));
+    /* 화면 캐시도 갱신 — 2단계로 다시 들어와도 저장한 값이 보이도록 */
+    globalData.records.forEach(r => {
+      if (String(r['대회번호']) !== String(currentMatchId)) return;
+      const p = picks.find(x => x.g === r['조번호']);
+      if (p) { r['전반코스'] = p.front; r['후반코스'] = p.back; }
+    });
     hideLoading(); alert('코스 매핑이 저장되었습니다.'); switchPhaseTab('phase3');
   } catch(err) { hideLoading(); alert('오류: ' + err.message); }
 }
@@ -991,6 +1021,13 @@ async function submitPhase3() {
   const list = Object.values(jobs);
   const skipText = (skipName.length ? `\n⚠️ 명단에서 못 찾아 제외: ${skipName.join(', ')}` : '') + (skipBad.length ? `\n⚠️ 18홀이 아니어서 제외: ${skipBad.join(', ')}` : '');
   if (!list.length) return alert('저장할 선수가 없습니다.' + skipText);
+  /* 코스가 없으면 합계를 계산할 수 없다 → 반쪽 저장을 막고 2단계로 안내 (예전엔 조용히 합계 0으로 저장돼 정산이 막혔음) */
+  const noCourse = list.filter(({ rec }) =>
+    !globalData.courses.find(c => c['구장명'] === rec['구장명'] && c['코스명'] === rec['전반코스']) ||
+    !globalData.courses.find(c => c['구장명'] === rec['구장명'] && c['코스명'] === rec['후반코스']));
+  if (noCourse.length) {
+    return alert(`⚠️ 전반/후반 코스가 지정되지 않아 저장할 수 없습니다.\n\n해당 선수 (${noCourse.length}명): ${noCourse.map(j => j.rec['성명']).join(', ')}\n\n[2. 현장 매핑]에서 조별 코스를 저장한 뒤 다시 임시저장하세요.\n(코스가 없으면 합계가 계산되지 않아 신페리오 정산이 막힙니다)`);
+  }
   if (!confirm(`${list.length}명의 점수를 임시 저장합니다.${skipText}\n\n계속하시겠습니까?`)) return;
   showLoading('스코어 저장 중...');
   try {
@@ -1017,18 +1054,28 @@ async function submitPhase3() {
 async function drawExcludeHoles() {
   if (!ensureMatchSelected()) return;
 
-  // 전원 스코어 입력 여부 확인 (합계 >= 1)
+  /* 홀 스코어가 들어왔는지로 판단 — 합계는 정산이 다시 계산하므로 비어 있어도 된다 */
   showLoading('스코어 입력 현황 확인 중...');
-  const checkRecords = await sbGet('tb_Record', `&대회번호=eq.${currentMatchId}`);
+  const [checkRecords, freshEps] = await Promise.all([
+    sbGet('tb_Record', `&대회번호=eq.${currentMatchId}`),
+    sbGet('tb_Match_Episodes', `&대회번호=eq.${currentMatchId}`)
+  ]);
   hideLoading();
-  const incomplete = checkRecords.filter(r => !r['합계'] || Number(r['합계']) < 1);
+  const incomplete = checkRecords.filter(r => r['H1'] === null || r['H1'] === undefined);
   if (incomplete.length > 0) {
-    alert(`⚠️ 스코어가 입력되지 않은 선수가 있습니다.\n\n미입력 선수 (${incomplete.length}명):\n${incomplete.map(r => '  · ' + r['성명']).join('\n')}\n\n모든 선수의 스코어를 임시저장한 후 다시 시도하세요.`);
+    alert(`⚠️ 홀 스코어가 입력되지 않은 선수가 있습니다.\n\n미입력 선수 (${incomplete.length}명):\n${incomplete.map(r => '  · ' + r['성명']).join('\n')}\n\n모든 선수의 스코어를 임시저장한 후 다시 시도하세요.`);
+    return;
+  }
+  const noCourseRecs = checkRecords.filter(r => !r['전반코스'] || !r['후반코스']);
+  if (noCourseRecs.length > 0) {
+    alert(`⚠️ 전반/후반 코스가 지정되지 않은 선수가 있습니다.\n\n(${noCourseRecs.length}명): ${noCourseRecs.map(r => r['성명']).join(', ')}\n\n[2. 현장 매핑]에서 조별 코스를 저장한 뒤 다시 시도하세요.`);
     return;
   }
 
-  /* ★ 가드: 이미 추첨·정산된 대회를 재추첨하면 제외홀이 새로 뽑혀 순위가 바뀜 */
-  const epsCheck = globalData.matchEpisodes.filter(m => m['대회번호'] === currentMatchId);
+  /* ★ 가드: 이미 추첨·정산된 대회를 재추첨하면 제외홀이 새로 뽑혀 순위가 바뀜 (DB 최신값으로 확인) */
+  globalData.matchEpisodes = globalData.matchEpisodes
+    .filter(m => String(m['대회번호']) !== String(currentMatchId)).concat(freshEps);
+  const epsCheck = freshEps;
   const alreadyDrawn = epsCheck.some(ep => ep['제외홀'] && String(ep['제외홀']).trim() !== '');
   if (alreadyDrawn) {
     if (!confirm('⚠️ 이미 제외홀이 추첨되어 정산이 완료된 대회입니다.\n\n다시 추첨하면 제외홀이 새로 뽑히고\n신페리오 순위가 바뀝니다.\n\n정말 재추첨하시겠습니까?')) return;
@@ -1037,7 +1084,7 @@ async function drawExcludeHoles() {
   }
   showLoading('🎲 제외홀 추첨 및 정산 중...');
   try {
-    const episodes = globalData.matchEpisodes.filter(m => m['대회번호'] === currentMatchId);
+    const episodes = freshEps;
     const drawnResults = [];
     await Promise.all(episodes.map(ep => {
       const cm = globalData.courses.find(c => c['구장명'] === currentVenue && c['코스명'] === ep['코스']); if (!cm) return Promise.resolve();
@@ -1046,8 +1093,11 @@ async function drawExcludeHoles() {
       drawnResults.push({ 코스: ep['코스'], 제외홀: ex }); ep['제외홀'] = ex;
       return sbPatch('tb_Match_Episodes', `대회번호=eq.${currentMatchId}&코스=eq.${encodeURIComponent(ep['코스'])}`, { 제외홀: ex });
     }));
-    const cnt = await runNPCalculation();
-    hideLoading(); alert(`🎲 ${drawnResults.length}개 코스 추첨 완료!\n${cnt}건 정산 완료\n\n${drawnResults.map(r=>`  ${r.코스}: [${r.제외홀}]홀 제외`).join('\n')}`);
+    const np = await runNPCalculation();
+    hideLoading();
+    alert(`🎲 ${drawnResults.length}개 코스 추첨 완료!\n${np.updated}건 정산 완료` +
+      (np.skipped.length ? `\n\n⚠️ 정산하지 못한 선수 (${np.skipped.length}명): ${np.skipped.join(', ')}\n → 2단계 코스 매핑과 코스관리의 PAR을 확인하세요.` : '') +
+      `\n\n${drawnResults.map(r=>`  ${r.코스}: [${r.제외홀}]홀 제외`).join('\n')}`);
   } catch(err) { hideLoading(); alert('오류: ' + err.message); }
 }
 
@@ -1527,13 +1577,14 @@ function applyPhase4TitleSort(stats) {
     </tr>`;
   });
 }
-function sortPhase4Title(key) {
+async function sortPhase4Title(key) {
   phase4TitleSort = key;
-  /* 현재 렌더링된 tbody 데이터를 재집계할 records는 globalData에서 가져오기 (게스트 제외) */
+  /* 정렬할 때도 DB에서 최신 기록을 다시 읽는다 (정산 직후 옛 데이터로 재집계되던 문제) */
   const guestSet = new Set(globalData.members.filter(m => m['등급'] === '게스트').map(m => m['전화번호']));
-  const records = globalData.records.filter(r =>
-    String(r['대회번호']) === String(currentMatchId) && !guestSet.has(r['전화번호']));
-  renderPhase4Title(records);
+  let records;
+  try { records = await sbGet('tb_Record', `&대회번호=eq.${currentMatchId}&합계=gt.0`); }
+  catch (e) { records = globalData.records.filter(r => String(r['대회번호']) === String(currentMatchId)); }
+  renderPhase4Title(records.filter(r => !guestSet.has(r['전화번호'])));
 }
 
 function renderPhase4Team(records) {
@@ -1605,17 +1656,18 @@ async function runNPCalculation() {
     sbGet('tb_Match_Episodes', `&대회번호=eq.${currentMatchId}`)
   ]);
   let updatedCount = 0;
+  const skipped = [];
   await Promise.all(records.map(r => {
-    if (r.H1 === null) return Promise.resolve();
+    if (r.H1 === null || r.H1 === undefined) return Promise.resolve();
     const scores = [r.H1,r.H2,r.H3,r.H4,r.H5,r.H6,r.H7,r.H8,r.H9,r.H10,r.H11,r.H12,r.H13,r.H14,r.H15,r.H16,r.H17,r.H18];
     const fe = episodes.find(e => e['코스'] === r['전반코스']);
     const be = episodes.find(e => e['코스'] === r['후반코스']);
-    if (!fe || !be) return Promise.resolve();
+    if (!fe || !be) { skipped.push(r['성명']); return Promise.resolve(); }
     const fx = fe['제외홀'] ? fe['제외홀'].split(',').map(Number).filter(n=>!isNaN(n)) : [];
     const bx = be['제외홀'] ? be['제외홀'].split(',').map(Number).filter(n=>!isNaN(n)) : [];
     const fc = globalData.courses.find(c => c['구장명'] === r['구장명'] && c['코스명'] === r['전반코스']);
     const bc = globalData.courses.find(c => c['구장명'] === r['구장명'] && c['코스명'] === r['후반코스']);
-    if (!fc || !bc) return Promise.resolve();
+    if (!fc || !bc) { skipped.push(r['성명']); return Promise.resolve(); }
     const pars    = [...fc.P, ...bc.P];
     const basePar = pars.reduce((a,b)=>a+b,0);
     let sel=0;
@@ -1629,7 +1681,7 @@ async function runNPCalculation() {
     return sbPatch('tb_Record', `대회번호=eq.${currentMatchId}&전화번호=eq.${encodeURIComponent(r['전화번호'])}`,
       { 합계:gros, NP_Handicap:np, Net_Score:net, Luck_Factor:luck });
   }));
-  return updatedCount;
+  return { updated: updatedCount, skipped };
 }
 </script>
 </body>
