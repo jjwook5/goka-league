@@ -509,7 +509,7 @@ async function loadAdminInitData() {
       const saved = localStorage.getItem('goka_admin_lastMatch');
       if (saved && activeMatches.some(m => String(m.matchId) === saved)) {
         selector.value = saved;
-        onSelectMatchSession(saved, true);   // silent 복원 (alert 억제)
+        await onSelectMatchSession(saved, true);   // silent 복원 (alert 억제)
       } else if (saved) {
         localStorage.removeItem('goka_admin_lastMatch');  // 완료/삭제된 대회면 정리
       }
@@ -537,7 +537,7 @@ function ensureMatchSelected() {
   return false;
 }
 
-function onSelectMatchSession(val, silent) {
+async function onSelectMatchSession(val, silent) {
   if (val === 'NEW') {
     isEditMode = false; currentMatchId = null; currentVenue = '';
     localStorage.removeItem('goka_admin_lastMatch');   /* 자동복원 대상 해제 */
@@ -550,7 +550,18 @@ function onSelectMatchSession(val, silent) {
     if (matched) {
       currentMatchId = matched.matchId; currentVenue = matched.venue;
       localStorage.setItem('goka_admin_lastMatch', String(currentMatchId));   /* 세션 자동복원용 */
-      const matchRecords = globalData.records.filter(r => r['대회번호'] === currentMatchId);
+      /* 조편성도 DB에서 최신값을 읽는다 (다른 기기·다른 세션에서 바꾼 조편성이 그대로 보이도록) */
+      let matchRecords;
+      try {
+        showLoading('대회 정보 불러오는 중...');
+        matchRecords = await sbGet('tb_Record', `&대회번호=eq.${currentMatchId}&order=순번.asc`);
+        globalData.records = globalData.records
+          .filter(r => String(r['대회번호']) !== String(currentMatchId)).concat(matchRecords);
+        hideLoading();
+      } catch (e) {
+        hideLoading();
+        matchRecords = globalData.records.filter(r => String(r['대회번호']) === String(currentMatchId));
+      }
       assignedGroups = {};
       const totalPlayers = matchRecords.length || 12;
       document.getElementById('playerCount').value = totalPlayers;
